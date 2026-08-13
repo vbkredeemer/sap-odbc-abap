@@ -15,4 +15,4 @@ CMakeCache.txt
 *.user
 
 # NWRFC SDK (nicht committen)
-nwrfcsdk/
+nwrfcsdk/build-mingw/
