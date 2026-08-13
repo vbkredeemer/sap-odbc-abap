@@ -3,14 +3,14 @@
 
 // Convert std::string (UTF-8) to SAP_UC (wchar_t on Windows) — helper
 // SAP_UC is wchar_t on Windows (UTF-16), char16_t on some platforms
-static std::wstring toSapUc(const std::string& s) {
+std::wstring toSapUc(const std::string& s) {
     std::wstring ws;
     for (size_t i = 0; i < s.length(); i++) ws += (wchar_t)(unsigned char)s[i];
     return ws;
 }
 
 // Convert SAP_UC to std::string — helper
-static std::string fromSapUc(const SAP_UC* src, int len) {
+std::string fromSapUc(const SAP_UC* src, int len) {
     if (!src || len <= 0) return "";
     std::string s;
     for (int i = 0; i < len; i++) {

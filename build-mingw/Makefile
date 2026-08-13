@@ -129,6 +129,30 @@ sapodbcabap/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/build
 .PHONY : sapodbcabap/fast
 
+src/chunked_read.obj: src/chunked_read.cpp.obj
+.PHONY : src/chunked_read.obj
+
+# target to build an object file
+src/chunked_read.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/chunked_read.cpp.obj
+.PHONY : src/chunked_read.cpp.obj
+
+src/chunked_read.i: src/chunked_read.cpp.i
+.PHONY : src/chunked_read.i
+
+# target to preprocess a source file
+src/chunked_read.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/chunked_read.cpp.i
+.PHONY : src/chunked_read.cpp.i
+
+src/chunked_read.s: src/chunked_read.cpp.s
+.PHONY : src/chunked_read.s
+
+# target to generate assembly for a file
+src/chunked_read.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/chunked_read.cpp.s
+.PHONY : src/chunked_read.cpp.s
+
 src/config.obj: src/config.cpp.obj
 .PHONY : src/config.obj
 
@@ -234,6 +258,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... sapodbcabap"
+	@echo "... src/chunked_read.obj"
+	@echo "... src/chunked_read.i"
+	@echo "... src/chunked_read.s"
 	@echo "... src/config.obj"
 	@echo "... src/config.i"
 	@echo "... src/config.s"

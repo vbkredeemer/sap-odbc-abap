@@ -10,6 +10,13 @@
 // SAP NWRFC SDK
 #include "sapnwrfc.h"
 
+// RFC helper functions (defined in rfc_wrapper.cpp, used by chunked_read.cpp)
+std::wstring toSapUc(const std::string& s);
+std::string fromSapUc(const SAP_UC* src, int len);
+
+// Convert C string literal to SAP_UC (wide string on Windows/Unicode)
+#define TO_SAP_UC(str) ((const SAP_UC*)(L##str))
+
 // Maximum rows per RFC call (matches Java driver's IV_MAX_ROWS)
 #define MAX_ROWS_DEFAULT 30000
 #define ROW_DATA_SIZE 10000
@@ -101,6 +108,23 @@ bool metaGetColumns(SapConnection* conn, const std::string& tableName,
                     std::vector<ColumnMeta>& columns,
                     std::vector<std::vector<std::string>>& rows,
                     std::string& error);
+
+// Chunked table read via Z_READ_TABLE
+// Automatically loops with ROWSKIPS/ROWCOUNT until all data is fetched
+bool rfcReadTableChunked(SapConnection* conn,
+                         const std::string& table,
+                         const std::string& whereClause,
+                         const std::string& fields,
+                         const std::string& orderBy,
+                         int chunkSize,
+                         std::vector<ColumnMeta>& columns,
+                         std::vector<std::string>& rows,
+                         int& total_row_count,
+                         std::string& error);
+
+// SQL parser: detect if query is a simple table read (no JOIN/GROUP BY/etc.)
+bool isSimpleTableRead(const std::string& sql, std::string& table, 
+                       std::string& whereClause, std::string& fields);
 
 // Config parsing
 ConnectionParams parseConnectionString(const std::string& connstr);

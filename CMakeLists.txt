@@ -22,6 +22,7 @@ add_library(sapodbcabap SHARED
     src/rfc_wrapper.cpp
     src/config.cpp
     src/metadata.cpp
+    src/chunked_read.cpp
 )
 
 # Include directories

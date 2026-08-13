@@ -168,7 +168,30 @@ SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQLSMALLINT c
         stmt->sql = std::string((char*)szSqlStr, cbSqlStr);
     }
 
-    // Execute via RFC
+    // Check if this is a simple table read (no JOIN/GROUP BY/etc.)
+    std::string table, whereClause, fields;
+    if (isSimpleTableRead(stmt->sql, table, whereClause, fields)) {
+        // Use chunked Z_READ_TABLE for flat table reads
+        std::string error;
+        // Determine ORDER BY — try to use the first field or a common PK pattern
+        // For now, no ORDER BY (same as commercial drivers)
+        std::string orderBy = ""; // Could be enhanced to auto-detect PK
+        int chunkSize = 10000;
+
+        if (!rfcReadTableChunked(stmt->connection, table, whereClause, fields, orderBy,
+                                 chunkSize, stmt->columns, stmt->rows, stmt->row_count, error)) {
+            stmt->executed = false;
+            setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT, error);
+            return SQL_ERROR;
+        }
+
+        stmt->current_row = 0;
+        stmt->executed = true;
+        stmt->metadata_mode = "";
+        return SQL_SUCCESS;
+    }
+
+    // Complex query — use Z_EXECUTE_SQL (ADBC, server-side joins)
     std::string error;
     if (!rfcExecuteSql(stmt->connection, stmt->sql.c_str(),
                        stmt->columns, stmt->rows, stmt->row_count, error)) {
