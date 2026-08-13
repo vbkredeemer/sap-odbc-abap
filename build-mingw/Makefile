@@ -177,6 +177,30 @@ src/driver.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/driver.cpp.s
 .PHONY : src/driver.cpp.s
 
+src/metadata.obj: src/metadata.cpp.obj
+.PHONY : src/metadata.obj
+
+# target to build an object file
+src/metadata.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/metadata.cpp.obj
+.PHONY : src/metadata.cpp.obj
+
+src/metadata.i: src/metadata.cpp.i
+.PHONY : src/metadata.i
+
+# target to preprocess a source file
+src/metadata.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/metadata.cpp.i
+.PHONY : src/metadata.cpp.i
+
+src/metadata.s: src/metadata.cpp.s
+.PHONY : src/metadata.s
+
+# target to generate assembly for a file
+src/metadata.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sapodbcabap.dir/build.make CMakeFiles/sapodbcabap.dir/src/metadata.cpp.s
+.PHONY : src/metadata.cpp.s
+
 src/rfc_wrapper.obj: src/rfc_wrapper.cpp.obj
 .PHONY : src/rfc_wrapper.obj
 
@@ -216,6 +240,9 @@ help:
 	@echo "... src/driver.obj"
 	@echo "... src/driver.i"
 	@echo "... src/driver.s"
+	@echo "... src/metadata.obj"
+	@echo "... src/metadata.i"
+	@echo "... src/metadata.s"
 	@echo "... src/rfc_wrapper.obj"
 	@echo "... src/rfc_wrapper.i"
 	@echo "... src/rfc_wrapper.s"

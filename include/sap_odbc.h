@@ -35,12 +35,21 @@ struct ConnectionParams {
     int max_rows;
 };
 
+// Error info stored per handle
+struct SapErrorInfo {
+    std::string sqlstate;
+    std::string message;
+    int native_error;
+    bool has_error;
+};
+
 // Connection handle (extends ODBC handle)
 struct SapConnection {
     ConnectionParams params;
     RFC_CONNECTION_HANDLE rfc_conn;
     bool connected;
     std::string error_msg;
+    SapErrorInfo last_error;
 };
 
 // Statement handle
@@ -52,6 +61,14 @@ struct SapStatement {
     int row_count;
     bool executed;
     std::string sql;
+    // Metadata mode: "TABLES", "COLUMNS", "TYPES", "TYPEINFO", or "" for normal queries
+    std::string metadata_mode;
+    // For SQLColumns: which table's columns to describe
+    std::string meta_table_name;
+    // Metadata result columns (different from query columns)
+    std::vector<ColumnMeta> meta_columns;
+    // Metadata result rows (pre-built, not pipe-delimited)
+    std::vector<std::vector<std::string>> meta_rows;
 };
 
 // ODBC handle types
@@ -62,6 +79,10 @@ struct SapStatement {
 SapConnection* getConnectionHandle(SQLHANDLE h);
 SapStatement* getStatementHandle(SQLHANDLE h);
 
+// Error storage helpers
+void setError(SQLHANDLE handle, SQLSMALLINT handleType, const std::string& msg, const char* state = "HY000");
+void clearError(SQLHANDLE handle, SQLSMALLINT handleType);
+
 // RFC wrapper functions
 bool rfcConnect(SapConnection* conn);
 void rfcDisconnect(SapConnection* conn);
@@ -70,6 +91,16 @@ bool rfcExecuteSql(SapConnection* conn, const char* sql,
                    std::vector<std::string>& rows,
                    int& row_count,
                    std::string& error);
+
+// Metadata functions (query DD02V/DD03VT via Z_EXECUTE_SQL)
+bool metaGetTables(SapConnection* conn, const std::string& tablePattern,
+                   std::vector<ColumnMeta>& columns,
+                   std::vector<std::vector<std::string>>& rows,
+                   std::string& error);
+bool metaGetColumns(SapConnection* conn, const std::string& tableName,
+                    std::vector<ColumnMeta>& columns,
+                    std::vector<std::vector<std::string>>& rows,
+                    std::string& error);
 
 // Config parsing
 ConnectionParams parseConnectionString(const std::string& connstr);

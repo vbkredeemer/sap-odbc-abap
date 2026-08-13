@@ -21,6 +21,7 @@ add_library(sapodbcabap SHARED
     src/driver.cpp
     src/rfc_wrapper.cpp
     src/config.cpp
+    src/metadata.cpp
 )
 
 # Include directories
