@@ -1,0 +1,32 @@
+name: Build ODBC Driver
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup MSVC Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+    
+    - name: Configure CMake (CI build with stub headers)
+      run: cmake -B build -DCI_BUILD=ON -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Upload DLL artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sapodbcabap-ci-build
+        path: build/Release/sapodbcabap.dll
+        if-no-files-found: warn
