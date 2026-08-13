@@ -7,8 +7,9 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build-windows:
+  build-windows-msvc:
     runs-on: windows-latest
+    name: Build (Windows MSVC)
     
     steps:
     - uses: actions/checkout@v4
@@ -24,9 +25,35 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
     
-    - name: Upload DLL artifact
+    - name: Upload DLL artifact (MSVC)
       uses: actions/upload-artifact@v4
       with:
-        name: sapodbcabap-ci-build
+        name: sapodbcabap-msvc
         path: build/Release/sapodbcabap.dll
+        if-no-files-found: warn
+
+  build-linux-mingw:
+    runs-on: ubuntu-latest
+    name: Build (Linux MinGW cross-compile)
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install MinGW-w64
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq mingw-w64 cmake
+    
+    - name: Configure CMake (MinGW cross-compile, CI build)
+      run: cmake -B build -DCI_BUILD=ON -DCMAKE_TOOLCHAIN_FILE=ci/mingw-toolchain.cmake
+    
+    - name: Build
+      run: cmake --build build
+    
+    - name: Verify DLL
+      run: file build/sapodbcabap.dll && ls -lh build/sapodbcabap.dll
+    
+    - name: Upload DLL artifact (MinGW)
+      uses: actions/upload-artifact@v4
+      with:
+        name: sapodbcabap-mingw
+        path: build/sapodbcabap.dll
         if-no-files-found: warn

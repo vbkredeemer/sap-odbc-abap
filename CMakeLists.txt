@@ -56,7 +56,15 @@ set_target_properties(sapodbcabap PROPERTIES
 )
 
 if(WIN32)
-    set_target_properties(sapodbcabap PROPERTIES
-        LINK_FLAGS "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/src/sapodbcabap.def"
-    )
+    if(MINGW)
+        # MinGW: use linker --def option via module definition
+        set_target_properties(sapodbcabap PROPERTIES
+            LINK_FLAGS "--def=${CMAKE_CURRENT_SOURCE_DIR}/src/sapodbcabap.def"
+        )
+    else()
+        # MSVC: use /DEF linker flag
+        set_target_properties(sapodbcabap PROPERTIES
+            LINK_FLAGS "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/src/sapodbcabap.def"
+        )
+    endif()
 endif()
