@@ -22,10 +22,7 @@ SapStatement* getStatementHandle(SQLHANDLE h) {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
     switch (dwReason) {
         case DLL_PROCESS_ATTACH:
-            RfcStartup();
-            break;
-        case DLL_PROCESS_DETACH:
-            RfcCleanup();
+            RfcInit();
             break;
     }
     return TRUE;

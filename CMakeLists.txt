@@ -34,6 +34,8 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${NWRFCSDK_DIR}/include
     )
+    # SAP NWRFC SDK uses Unicode mode on Windows
+    target_compile_definitions(sapodbcabap PRIVATE SAPwithUNICODE)
 endif()
 
 # Link libraries
