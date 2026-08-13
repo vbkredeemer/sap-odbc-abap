@@ -16,3 +16,5 @@ CMakeCache.txt
 
 # NWRFC SDK (nicht committen)
 nwrfcsdk/build-mingw/
+build-real/
+nwrfcsdk/
