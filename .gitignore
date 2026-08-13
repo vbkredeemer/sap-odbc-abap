@@ -1,0 +1,18 @@
+# Build
+build/
+CMakeFiles/
+cmake_install.cmake
+CMakeCache.txt
+*.obj
+*.lib
+*.dll
+*.exp
+*.pdb
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# NWRFC SDK (nicht committen)
+nwrfcsdk/
