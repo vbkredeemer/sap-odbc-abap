@@ -82,9 +82,9 @@ FUNCTION Z_READ_TABLE.
     RETURN.
   ENDIF.
 
-  * Validate table name — only alphanumeric and underscore allowed
+  " Validate table name — only alphanumeric and underscore allowed
   IF iv_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_' = 0.
-    * iv_table contains only valid chars — OK
+    " iv_table contains only valid chars — OK
   ELSE.
     ev_error = 'Invalid table name (only A-Z, 0-9, underscore allowed): ' && iv_table.
     RETURN.
