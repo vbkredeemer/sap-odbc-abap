@@ -83,9 +83,7 @@ FUNCTION Z_READ_TABLE.
   ENDIF.
 
   " Validate table name — only alphanumeric and underscore allowed
-  IF iv_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_' = 0.
-    " iv_table contains only valid chars — OK
-  ELSE.
+  IF iv_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_'.
     ev_error = 'Invalid table name (only A-Z, 0-9, underscore allowed): ' && iv_table.
     RETURN.
   ENDIF.
@@ -194,7 +192,7 @@ FUNCTION Z_READ_TABLE.
 
     LOOP AT lt_requested_fields INTO DATA(lv_req_field).
       CONDENSE lv_req_field.
-      IF lv_req_field CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_' <> 0.
+      IF lv_req_field CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_'.
         ev_error = 'Invalid field name (only A-Z, 0-9, underscore allowed): ' && lv_req_field.
         RETURN.
       ENDIF.
