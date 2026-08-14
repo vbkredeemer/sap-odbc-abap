@@ -82,10 +82,11 @@ FUNCTION Z_READ_TABLE.
     RETURN.
   ENDIF.
 
-  " Validate table name — only alphanumeric and underscore allowed
-  CONDENSE iv_table.
-  IF iv_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_'.
-    ev_error = 'Invalid table name (only A-Z, 0-9, underscore allowed): ' && iv_table.
+  " Validate table name — only alphanumeric, underscore and slash (for namespaces like /BIC/) allowed
+  DATA(lv_check_table) = iv_table.
+  CONDENSE lv_check_table.
+  IF lv_check_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_/'.
+    ev_error = |Invalid table name (only A-Z, 0-9, underscore, slash allowed): { lv_check_table }|.
     RETURN.
   ENDIF.
 
@@ -194,8 +195,8 @@ FUNCTION Z_READ_TABLE.
     LOOP AT lt_requested_fields INTO DATA(lv_req_field).
       CONDENSE lv_req_field.
       " lv_req_field already CONDENSE'd above — CN check is safe
-      IF lv_req_field CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_'.
-        ev_error = 'Invalid field name (only A-Z, 0-9, underscore allowed): ' && lv_req_field.
+      IF lv_req_field CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_/'.
+        ev_error = |Invalid field name (only A-Z, 0-9, underscore, slash allowed): { lv_req_field }|.
         RETURN.
       ENDIF.
     ENDLOOP.
