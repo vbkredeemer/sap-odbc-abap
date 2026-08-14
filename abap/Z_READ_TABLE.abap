@@ -69,7 +69,8 @@ FUNCTION Z_READ_TABLE.
         lv_field_value   TYPE string,
         lv_char_val      TYPE c LENGTH 100,
         lv_rowdata       TYPE string,
-        lv_total_rows    TYPE i.
+        lv_total_rows    TYPE i,
+        lv_check_table   TYPE string.
 
   CLEAR: ev_error, ev_row_count, ev_has_more.
   CLEAR: et_fields[], et_data[].
@@ -82,11 +83,12 @@ FUNCTION Z_READ_TABLE.
     RETURN.
   ENDIF.
 
-  " Validate table name — only alphanumeric, underscore and slash (for namespaces like /BIC/) allowed
-  DATA(lv_check_table) = iv_table.
-  CONDENSE lv_check_table.
-  IF lv_check_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_/'.
-    ev_error = |Invalid table name (only A-Z, 0-9, underscore, slash allowed): { lv_check_table }|.
+  " Validate table name — only A-Z, 0-9, underscore and slash (for namespaces like /BIC/) allowed
+  lv_check_table = iv_table.
+  CONDENSE lv_check_table NO-GAPS.
+  TRANSLATE lv_check_table TO UPPER CASE.
+  IF NOT lv_check_table CO 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/'.
+    ev_error = |Invalid table name (only A-Z, 0-9, _, / allowed): { lv_check_table }|.
     RETURN.
   ENDIF.
 
@@ -193,10 +195,10 @@ FUNCTION Z_READ_TABLE.
     SPLIT lv_select AT ',' INTO TABLE lt_requested_fields.
 
     LOOP AT lt_requested_fields INTO DATA(lv_req_field).
-      CONDENSE lv_req_field.
-      " lv_req_field already CONDENSE'd above — CN check is safe
-      IF lv_req_field CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_/'.
-        ev_error = |Invalid field name (only A-Z, 0-9, underscore, slash allowed): { lv_req_field }|.
+      CONDENSE lv_req_field NO-GAPS.
+      TRANSLATE lv_req_field TO UPPER CASE.
+      IF NOT lv_req_field CO 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/'.
+        ev_error = |Invalid field name (only A-Z, 0-9, _, / allowed): { lv_req_field }|.
         RETURN.
       ENDIF.
     ENDLOOP.
