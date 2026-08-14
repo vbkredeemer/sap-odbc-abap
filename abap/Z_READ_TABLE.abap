@@ -34,23 +34,14 @@
 *   ET_DATA      STRUCTURE ZSQL_ROW    - Pipe-delimited Zeilendaten (wie Z_EXECUTE_SQL)
 *---------------------------------------------------------------------*
 
-*---------------------------------------------------------------------*
-* Funktionbaustein: Z_READ_TABLE
-* Zweck: Chunked Table Read für Massendaten-Extraktion
-*        Unterstützt ROWSKIPS/ROWCOUNT für Paging
-*        Nutzt pipe-delimited ROWDATA (CHAR 10000) wie Z_EXECUTE_SQL
-*        Nur für einfache Table-Reads (keine Joins, keine Aggregation)
-*        ORDER BY wird unterstützt für konsistentes Paging
-*---------------------------------------------------------------------*
-
 FUNCTION Z_READ_TABLE.
 *"----------------------------------------------------------------------
 *"*"Lokale Schnittstelle:
 *"  IMPORTING
 *"     VALUE(IV_TABLE) TYPE  TABNAME
-*"     VALUE(IV_WHERE) TYPE  STRING
-*"     VALUE(IV_FIELDS) TYPE  STRING
-*"     VALUE(IV_ORDERBY) TYPE  STRING
+*"     VALUE(IV_WHERE) TYPE  STRING OPTIONAL
+*"     VALUE(IV_FIELDS) TYPE  STRING OPTIONAL
+*"     VALUE(IV_ORDERBY) TYPE  STRING OPTIONAL
 *"     VALUE(IV_ROWSKIPS) TYPE  I DEFAULT 0
 *"     VALUE(IV_ROWCOUNT) TYPE  I DEFAULT 0
 *"     VALUE(IV_MAX_ROWS) TYPE  I DEFAULT 0
@@ -72,16 +63,13 @@ FUNCTION Z_READ_TABLE.
         ls_data          TYPE ZSQL_ROW,
         lo_table_descr   TYPE REF TO cl_abap_tabledescr,
         lo_struct_descr  TYPE REF TO cl_abap_structdescr,
-        lo_data_ref      TYPE REF TO data,
         lt_dynamic       TYPE REF TO data,
         ls_dynamic       TYPE REF TO data,
         lv_fieldname     TYPE string,
         lv_field_value   TYPE string,
-        lv_char_val      TYPE char50,
+        lv_char_val      TYPE string,
         lv_rowdata       TYPE string,
-        lv_total_rows    TYPE i,
-        lv_fetch_count   TYPE i,
-        lv_skip          TYPE i.
+        lv_total_rows    TYPE i.
 
   CLEAR: ev_error, ev_row_count, ev_has_more.
   CLEAR: et_fields[], et_data[].
@@ -91,6 +79,13 @@ FUNCTION Z_READ_TABLE.
 *---------------------------------------------------------------------
   IF iv_table IS INITIAL.
     ev_error = 'IV_TABLE is empty'.
+    RETURN.
+  ENDIF.
+
+  DATA: lv_invalid_char TYPE i.
+  FIND REGEX '[^A-Za-z0-9_]' IN iv_table MATCH COUNT lv_invalid_char.
+  IF lv_invalid_char > 0.
+    ev_error = 'Invalid table name (only A-Z, 0-9, underscore allowed): ' && iv_table.
     RETURN.
   ENDIF.
 
@@ -144,26 +139,6 @@ FUNCTION Z_READ_TABLE.
   ENDIF.
 
   TRY.
-      " Build the full dynamic SQL statement for reference
-      DATA: lv_sql TYPE string,
-            lv_max_fetch_str TYPE string.
-      
-      lv_max_fetch_str = |{ lv_max_fetch }|.
-
-      IF lv_orderby IS NOT INITIAL.
-        CONCATENATE 'SELECT' lv_select 'FROM' iv_table
-                    lv_where_clause lv_orderby
-                    'INTO TABLE' 'lt_dynamic'
-                    'UP TO' lv_max_fetch_str 'ROWS'
-                    INTO lv_sql SEPARATED BY space.
-      ELSE.
-        CONCATENATE 'SELECT' lv_select 'FROM' iv_table
-                    lv_where_clause
-                    'INTO TABLE' 'lt_dynamic'
-                    'UP TO' lv_max_fetch_str 'ROWS'
-                    INTO lv_sql SEPARATED BY space.
-      ENDIF.
-
     " Deklarieren des Feldsymbols und Zuweisung VOR dem SELECT
     FIELD-SYMBOLS: <fs_table>   TYPE STANDARD TABLE.
     ASSIGN lt_dynamic->* TO <fs_table>.
@@ -215,6 +190,15 @@ FUNCTION Z_READ_TABLE.
     lv_all_fields = 'X'.
   ELSE.
     SPLIT lv_select AT ',' INTO TABLE lt_requested_fields.
+
+    LOOP AT lt_requested_fields INTO DATA(lv_req_field).
+      CONDENSE lv_req_field.
+      FIND REGEX '[^A-Za-z0-9_]' IN lv_req_field MATCH COUNT DATA(lv_bad_field).
+      IF lv_bad_field > 0.
+        ev_error = 'Invalid field name (only A-Z, 0-9, underscore allowed): ' && lv_req_field.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
   ENDIF.
 
   DATA: lv_colpos TYPE i.
@@ -343,7 +327,10 @@ FUNCTION Z_READ_TABLE.
           WHEN 'P'.
             " Packed decimal with dot, no thousand separators
             IF <fs_field> IS NOT INITIAL.
-              WRITE <fs_field> TO lv_char_val NO-GROUPING.
+              WRITE <fs_field> TO lv_char_val NO-GROUPING NO-SIGN.
+              IF <fs_field> < 0.
+                CONCATENATE '-' lv_char_val INTO lv_char_val.
+              ENDIF.
               lv_field_value = lv_char_val.
               REPLACE ALL OCCURRENCES OF ',' IN lv_field_value WITH '.'.
               CONDENSE lv_field_value.
@@ -352,7 +339,10 @@ FUNCTION Z_READ_TABLE.
           WHEN 'F'.
             " Float with dot notation
             IF <fs_field> IS NOT INITIAL.
-              WRITE <fs_field> TO lv_char_val NO-GROUPING.
+              WRITE <fs_field> TO lv_char_val NO-GROUPING NO-SIGN.
+              IF <fs_field> < 0.
+                CONCATENATE '-' lv_char_val INTO lv_char_val.
+              ENDIF.
               lv_field_value = lv_char_val.
               REPLACE ALL OCCURRENCES OF ',' IN lv_field_value WITH '.'.
               CONDENSE lv_field_value.
