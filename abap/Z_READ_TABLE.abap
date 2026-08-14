@@ -67,7 +67,7 @@ FUNCTION Z_READ_TABLE.
         ls_dynamic       TYPE REF TO data,
         lv_fieldname     TYPE string,
         lv_field_value   TYPE string,
-        lv_char_val      TYPE string,
+        lv_char_val      TYPE c LENGTH 100,
         lv_rowdata       TYPE string,
         lv_total_rows    TYPE i.
 
@@ -82,9 +82,10 @@ FUNCTION Z_READ_TABLE.
     RETURN.
   ENDIF.
 
-  DATA: lv_invalid_char TYPE i.
-  FIND REGEX '[^A-Za-z0-9_]' IN iv_table MATCH COUNT lv_invalid_char.
-  IF lv_invalid_char > 0.
+  * Validate table name — only alphanumeric and underscore allowed
+  IF iv_table CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_' = 0.
+    * iv_table contains only valid chars — OK
+  ELSE.
     ev_error = 'Invalid table name (only A-Z, 0-9, underscore allowed): ' && iv_table.
     RETURN.
   ENDIF.
@@ -193,8 +194,7 @@ FUNCTION Z_READ_TABLE.
 
     LOOP AT lt_requested_fields INTO DATA(lv_req_field).
       CONDENSE lv_req_field.
-      FIND REGEX '[^A-Za-z0-9_]' IN lv_req_field MATCH COUNT DATA(lv_bad_field).
-      IF lv_bad_field > 0.
+      IF lv_req_field CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_' <> 0.
         ev_error = 'Invalid field name (only A-Z, 0-9, underscore allowed): ' && lv_req_field.
         RETURN.
       ENDIF.
