@@ -119,7 +119,7 @@ FUNCTION Z_READ_TABLE.
 * Create dynamic structure for the table
 *---------------------------------------------------------------------
   TRY.
-      lo_struct_descr ?= cl_abap_structdescr=>describe_by_name( iv_table ).
+      lo_struct_descr ?= cl_abap_structdescr=>describe_by_name( lv_check_table ).
       lo_table_descr = cl_abap_tabledescr=>create( lo_struct_descr ).
       CREATE DATA lt_dynamic TYPE HANDLE lo_table_descr.
       CREATE DATA ls_dynamic TYPE HANDLE lo_struct_descr.
@@ -151,20 +151,20 @@ FUNCTION Z_READ_TABLE.
     " We use SELECT (fields) FROM (table) WHERE (where) ORDER BY (orderby)
 
       IF lv_where_clause IS NOT INITIAL AND lv_orderby IS NOT INITIAL.
-        SELECT (lv_select) FROM (iv_table)
+        SELECT (lv_select) FROM (lv_check_table)
           WHERE (iv_where)
           ORDER BY (iv_orderby)
           INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ELSEIF lv_where_clause IS NOT INITIAL.
-        SELECT (lv_select) FROM (iv_table)
+        SELECT (lv_select) FROM (lv_check_table)
           WHERE (iv_where)
           INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ELSEIF lv_orderby IS NOT INITIAL.
-        SELECT (lv_select) FROM (iv_table)
+        SELECT (lv_select) FROM (lv_check_table)
           ORDER BY (iv_orderby)
           INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ELSE.
-        SELECT (lv_select) FROM (iv_table)
+        SELECT (lv_select) FROM (lv_check_table)
           INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ENDIF.
 
