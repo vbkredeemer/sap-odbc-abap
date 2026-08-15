@@ -338,23 +338,11 @@ FUNCTION Z_READ_TABLE.
         CLEAR lv_field_value.
         CASE ls_field_cat-datatype.
           WHEN 'D'.
-            IF <fs_field> IS NOT INITIAL.
-              DATA(lv_d) = |{ <fs_field> }|.
-              IF strlen( lv_d ) = 8.
-                CONCATENATE lv_d(4) '-' lv_d+4(2) '-' lv_d+6(2) INTO lv_field_value.
-              ELSE.
-                lv_field_value = lv_d.
-              ENDIF.
-            ENDIF.
+            lv_field_value = |{ <fs_field> }|.
+            CONDENSE lv_field_value.
           WHEN 'T'.
-            IF <fs_field> IS NOT INITIAL.
-              DATA(lv_t) = |{ <fs_field> }|.
-              IF strlen( lv_t ) = 6.
-                CONCATENATE lv_t(2) ':' lv_t+2(2) ':' lv_t+4(2) INTO lv_field_value.
-              ELSE.
-                lv_field_value = lv_t.
-              ENDIF.
-            ENDIF.
+            lv_field_value = |{ <fs_field> }|.
+            CONDENSE lv_field_value.
           WHEN 'I' OR 'INT1' OR 'INT2'.
             lv_field_value = |{ <fs_field> }|.
             CONDENSE lv_field_value.
@@ -381,8 +369,7 @@ FUNCTION Z_READ_TABLE.
               SHIFT lv_field_value LEFT DELETING LEADING SPACE.
             ENDIF.
           WHEN 'X'.
-            DATA(lv_x) = |{ <fs_field> }|.
-            CONCATENATE '0x' lv_x INTO lv_field_value.
+            lv_field_value = |{ <fs_field> }|.
           WHEN OTHERS.
             lv_field_value = |{ <fs_field> }|.
             REPLACE ALL OCCURRENCES OF '|' IN lv_field_value WITH space.
