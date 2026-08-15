@@ -184,13 +184,29 @@ FUNCTION Z_READ_TABLE.
       RETURN.
   ENDTRY.
 
-*---------------------------------------------------------------------
-* Get field metadata from the dynamic structure
-*---------------------------------------------------------------------
-  DATA: lt_components TYPE cl_abap_structdescr=>component_table,
-        ls_component  TYPE abap_componentdescr.
+*---------------------------------------------------------------------*
+* Get field metadata via DDIF_NAMETAB_GET (flat list including .INCLUDE fields)
+* get_components() misses fields inside .INCLUDE structures (e.g. MARA-ERNAM)
+*---------------------------------------------------------------------*
+  DATA: lt_nametab TYPE TABLE OF x031l,
+        ls_nametab TYPE x031l.
 
-  lt_components = lo_struct_descr->get_components( ).
+  CALL FUNCTION 'DDIF_NAMETAB_GET'
+    EXPORTING
+      tabname        = lv_check_table
+    TABLES
+      x031l_tab      = lt_nametab
+    EXCEPTIONS
+      not_found      = 1
+      OTHERS         = 2.
+
+  IF sy-subrc <> 0.
+    ev_error = |DDIF_NAMETAB_GET failed for { lv_check_table }|.
+    RETURN.
+  ENDIF.
+
+  " Remove .INCLUDE entries (field names starting with '.')
+  DELETE lt_nametab WHERE fieldname(1) = '.'.
 
   " If specific fields were requested, filter
   DATA: lt_requested_fields TYPE TABLE OF string,
@@ -218,14 +234,14 @@ FUNCTION Z_READ_TABLE.
   FIELD-SYMBOLS: <fs_dynamic> TYPE ANY,
                  <fs_field>   TYPE ANY.
 
-  LOOP AT lt_components INTO ls_component.
+  LOOP AT lt_nametab INTO ls_nametab.
     " Check if field is requested
     IF lv_all_fields = 'X'.
       lv_field_requested = 'X'.
     ELSE.
       lv_field_requested = ''.
       LOOP AT lt_requested_fields INTO lv_fieldname.
-        IF ls_component-name = lv_fieldname.
+        IF ls_nametab-fieldname = lv_fieldname.
           lv_field_requested = 'X'.
           EXIT.
         ENDIF.
@@ -234,35 +250,36 @@ FUNCTION Z_READ_TABLE.
 
     IF lv_field_requested = 'X'.
       CLEAR ls_field_cat.
-      ls_field_cat-fieldname = ls_component-name.
+      ls_field_cat-fieldname = ls_nametab-fieldname.
 
-      " Map ABAP type to DATATYPE
-      CASE ls_component-type->type_kind.
-        WHEN cl_abap_structdescr=>typekind_char
-          OR cl_abap_structdescr=>typekind_string.
+      " Map ABAP INTTYPE to DATATYPE
+      CASE ls_nametab-inttype.
+        WHEN 'C' OR 'g'.
           ls_field_cat-datatype = 'C'.
-        WHEN cl_abap_structdescr=>typekind_int.
-          ls_field_cat-datatype = 'I'.
-        WHEN cl_abap_structdescr=>typekind_int2.
-          ls_field_cat-datatype = 'INT2'.
-        WHEN cl_abap_structdescr=>typekind_int1.
-          ls_field_cat-datatype = 'INT1'.
-        WHEN cl_abap_structdescr=>typekind_packed.
-          ls_field_cat-datatype = 'P'.
-        WHEN cl_abap_structdescr=>typekind_float.
-          ls_field_cat-datatype = 'F'.
-        WHEN cl_abap_structdescr=>typekind_date.
+        WHEN 'N'.
+          ls_field_cat-datatype = 'N'.
+        WHEN 'D'.
           ls_field_cat-datatype = 'D'.
-        WHEN cl_abap_structdescr=>typekind_time.
+        WHEN 'T'.
           ls_field_cat-datatype = 'T'.
-        WHEN cl_abap_structdescr=>typekind_hex.
+        WHEN 'P'.
+          ls_field_cat-datatype = 'P'.
+        WHEN 'F'.
+          ls_field_cat-datatype = 'F'.
+        WHEN 'I'.
+          ls_field_cat-datatype = 'I'.
+        WHEN 's'.
+          ls_field_cat-datatype = 'INT2'.
+        WHEN 'b'.
+          ls_field_cat-datatype = 'INT1'.
+        WHEN 'X' OR 'y'.
           ls_field_cat-datatype = 'X'.
         WHEN OTHERS.
           ls_field_cat-datatype = 'C'.
       ENDCASE.
 
-      ls_field_cat-length = ls_component-type->length.
-      ls_field_cat-decimals = ls_component-type->decimals.
+      ls_field_cat-length = ls_nametab-leng.
+      ls_field_cat-decimals = ls_nametab-decimals.
       ls_field_cat-colpos = lv_colpos.
       lv_colpos = lv_colpos + 1.
 
