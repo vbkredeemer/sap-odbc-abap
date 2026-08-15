@@ -1,224 +1,589 @@
-Feedback Type:
-Frown (Error)
+=== ODBC Test Program v3 (no SQLTables) ===
+Date: Aug 14 2026 21:27:33
 
-Error Message:
-Fehler
+--- Step 1: Environment ---
+SQLAllocHandle(ENV) = SQL_SUCCESS
+SQLSetEnvAttr = SQL_SUCCESS
 
-Stack Trace:
+--- Step 2: Connection ---
+SQLAllocHandle(DBC) = SQL_SUCCESS
+Connecting with: DSN=SAP_DAA
+SQLDriverConnect = SQL_SUCCESS
+Output: [DSN=SAP_DAA;]
 
+--- Step 3: SQLGetInfo ---
+  DBMS_NAME = SAP via Z_EXECUTE_SQL (rc=SQL_SUCCESS)
+  SERVER_NAME = jbklsapas1daa.jbdmn.de (rc=SQL_SUCCESS)
 
-Stack Trace Message:
-Fehler
+--- Step 4: Data Queries (no metadata) ---
 
-Invocation Stack Trace:
-   bei Microsoft.Mashup.Host.Document.ExceptionExtensions.GetCurrentInvocationStackTrace()
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo..ctor(String message, Exception exception, Nullable`1 stackTraceInfo, String messageDetail)
-   bei Microsoft.Mashup.Client.UI.Shared.IUIHostExtensions.RaiseErrorDialog(IUIHost uiHost, IWindowHandle activeWindow, FeedbackPackageInfo feedbackPackageInfo, Exception e, LocalizedString dialogTitle, LocalizedString dialogMessage, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.Excel.Native.NativeUserFeedbackServices.ReportException(IWindowHandle activeWindow, IUIHost uiHost, FeedbackPackageInfo feedbackPackageInfo, Exception e, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.<>c__DisplayClass14_0.<HandleException>b__0()
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.HandleException(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.HandleImportEvaluationException(ExceptionResult exceptionView, Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.OnGetPreviewResult(PreviewResult preview, Query query, String sourceID, String formulaTitle, Nullable`1 explicitImportDestination, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass65_0.<GetPreviewResult>b__1()
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeWorkbookStorageServices.Microsoft.Mashup.Client.Excel.Shim.IDeferredStorageInvoker.InvokeDeferredStorageAction(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.InvokeCoauthAction(IWorkbook workbook, UndoableActionType actionType, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.NotifyGetDataPresence(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass59_0.<InvokeOnWorkbook>b__0(IWorkbook workbook, IWindowContext windowContext)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.InvokeOnWorkbook[T](Func`3 action, T defaultValue)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.<>c__DisplayClass90_0.<OnQuerySettingsResolved>b__0()
-   bei Microsoft.Mashup.Host.Document.ExceptionHandlerExtensions.HandleExceptions(IExceptionHandler exceptionHandler, Action action)
-   bei System.RuntimeMethodHandle.InvokeMethod(Object target, Object[] arguments, Signature sig, Boolean constructor)
-   bei System.Reflection.RuntimeMethodInfo.UnsafeInvokeInternal(Object obj, Object[] parameters, Object[] arguments)
-   bei System.Delegate.DynamicInvokeImpl(Object[] args)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackDo(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackHelper(Object obj)
-   bei System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallback(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbacks()
-   bei System.Windows.Forms.Control.WndProc(Message& m)
-   bei System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+--- 4a Simple: SQLExecDirect('SELECT MATNR FROM MARA') ---
+SQLAllocHandle(STMT) = SQL_SUCCESS, hstmt=00000273fcd07eb0
+Calling SQLExecDirect...
+SQLExecDirect = SQL_SUCCESS
+SQLNumResultCols = SQL_SUCCESS, numCols=1
+  Col 1: name=[MATNR] type=12 size=80 rc=SQL_SUCCESS
+  SQLFetch[0] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[1] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[2] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[3] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[4] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[5] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[6] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[7] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[8] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[9] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+Fetched 10 rows total
+SQLRowCount = SQL_SUCCESS, rows=13359
+(end of 4a Simple)
 
+--- 4b Two-Col: SQLExecDirect('SELECT MATNR, ERNAM FROM MARA') ---
+SQLAllocHandle(STMT) = SQL_SUCCESS, hstmt=00000273fcd07eb0
+Calling SQLExecDirect...
+SQLExecDirect = SQL_SUCCESS
+SQLNumResultCols = SQL_SUCCESS, numCols=1
+  Col 1: name=[MATNR] type=12 size=80 rc=SQL_SUCCESS
+  SQLFetch[0] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[1] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[2] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[3] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[4] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[5] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[6] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[7] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[8] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+  SQLFetch[9] = SQL_SUCCESS
+    Col 1: [RFCSUPERUSER] (ind=12, rc=SQL_SUCCESS)
+Fetched 10 rows total
+SQLRowCount = SQL_SUCCESS, rows=13359
+(end of 4b Two-Col)
 
-InnerException0.Stack Trace Message:
-Das SafeHandle wurde geschlossen.
+--- 4c Where: SQLExecDirect('SELECT MATNR FROM MARA WHERE MATNR LIKE 'A%'') ---
+SQLAllocHandle(STMT) = SQL_SUCCESS, hstmt=00000273fcd07eb0
+Calling SQLExecDirect...
+SQLExecDirect = SQL_SUCCESS
+SQLNumResultCols = SQL_SUCCESS, numCols=1
+  Col 1: name=[MATNR] type=12 size=80 rc=SQL_SUCCESS
+  SQLFetch[0] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[1] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[2] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[3] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[4] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[5] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[6] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[7] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[8] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[9] = SQL_SUCCESS
+    Col 1: [] (ind=0, rc=SQL_SUCCESS)
+Fetched 10 rows total
+SQLRowCount = SQL_SUCCESS, rows=589
+(end of 4c Where)
 
-InnerException0.Stack Trace:
-   bei Microsoft.Mashup.Evaluator.EvaluationHost.OnException(IEngineHost engineHost, IMessageChannel channel, ExceptionMessage message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.Dispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.ChannelMessenger.ChannelMessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.Dispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.ChannelMessenger.OnMessageWithUnknownChannel(IMessageChannel baseChannel, MessageWithUnknownChannel messageWithUnknownChannel)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.ChannelMessenger.ChannelMessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.Dispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.Interface.IMessageChannelExtensions.WaitFor[T](IMessageChannel channel)
-   bei Microsoft.Mashup.Evaluator.RemotePreviewValueSource.PreviewValueSource.WaitFor(Func`1 condition, Boolean disposing)
-   bei Microsoft.Mashup.Evaluator.RemotePreviewValueSource.PreviewValueSource.get_TableSource()
-   bei Microsoft.Mashup.Evaluator.Interface.TracingPreviewValueSource.get_TableSource()
-   bei Microsoft.Mashup.Host.Document.Analysis.PackageDocumentAnalysisInfo.PackagePartitionAnalysisInfo.SetPreviewValue(EvaluationResult2`1 result, Func`1 getStaleSince, Func`1 getSampled)
+--- 4d Star: SQLExecDirect('SELECT * FROM MARA') ---
+SQLAllocHandle(STMT) = SQL_SUCCESS, hstmt=00000273fcd07eb0
+Calling SQLExecDirect...
+SQLExecDirect = SQL_SUCCESS
+SQLNumResultCols = SQL_SUCCESS, numCols=4
+  Col 1: name=[MANDT] type=12 size=6 rc=SQL_SUCCESS
+  Col 2: name=[MATNR] type=12 size=80 rc=SQL_SUCCESS
+  Col 3: name=[] type=12 size=4280 rc=SQL_SUCCESS
+  Col 4: name=[] type=12 size=40 rc=SQL_SUCCESS
+  SQLFetch[0] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000118_TO] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[1] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000123_M3] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[2] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000043_M3] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[3] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000043_TO] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[4] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000044_M3] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[5] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000044_TO] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[6] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000052_TO] (ind=14, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[7] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000070_00001] (ind=17, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[8] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000070_00002] (ind=17, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+  SQLFetch[9] = SQL_SUCCESS
+    Col 1: [100] (ind=3, rc=SQL_SUCCESS)
+    Col 2: [DABF_000070_00003] (ind=17, rc=SQL_SUCCESS)
+    Col 3: [] (ind=0, rc=SQL_SUCCESS)
+    Col 4: [] (ind=0, rc=SQL_SUCCESS)
+Fetched 10 rows total
+SQLRowCount = SQL_SUCCESS, rows=13359
+(end of 4d Star)
 
-InnerException0.Invocation Stack Trace:
-   bei Microsoft.Mashup.Host.Document.ExceptionExtensions.GetCurrentInvocationStackTrace()
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromException(Exception e, String prefix)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromInnerExceptions(Exception e, Int32 depth)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.CreateAdditionalErrorInfo(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo..ctor(String message, Exception exception, Nullable`1 stackTraceInfo, String messageDetail)
-   bei Microsoft.Mashup.Client.UI.Shared.IUIHostExtensions.RaiseErrorDialog(IUIHost uiHost, IWindowHandle activeWindow, FeedbackPackageInfo feedbackPackageInfo, Exception e, LocalizedString dialogTitle, LocalizedString dialogMessage, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.Excel.Native.NativeUserFeedbackServices.ReportException(IWindowHandle activeWindow, IUIHost uiHost, FeedbackPackageInfo feedbackPackageInfo, Exception e, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.<>c__DisplayClass14_0.<HandleException>b__0()
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.HandleException(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.HandleImportEvaluationException(ExceptionResult exceptionView, Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.OnGetPreviewResult(PreviewResult preview, Query query, String sourceID, String formulaTitle, Nullable`1 explicitImportDestination, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass65_0.<GetPreviewResult>b__1()
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeWorkbookStorageServices.Microsoft.Mashup.Client.Excel.Shim.IDeferredStorageInvoker.InvokeDeferredStorageAction(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.InvokeCoauthAction(IWorkbook workbook, UndoableActionType actionType, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.NotifyGetDataPresence(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass59_0.<InvokeOnWorkbook>b__0(IWorkbook workbook, IWindowContext windowContext)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.InvokeOnWorkbook[T](Func`3 action, T defaultValue)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.<>c__DisplayClass90_0.<OnQuerySettingsResolved>b__0()
-   bei Microsoft.Mashup.Host.Document.ExceptionHandlerExtensions.HandleExceptions(IExceptionHandler exceptionHandler, Action action)
-   bei System.RuntimeMethodHandle.InvokeMethod(Object target, Object[] arguments, Signature sig, Boolean constructor)
-   bei System.Reflection.RuntimeMethodInfo.UnsafeInvokeInternal(Object obj, Object[] parameters, Object[] arguments)
-   bei System.Delegate.DynamicInvokeImpl(Object[] args)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackDo(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackHelper(Object obj)
-   bei System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallback(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbacks()
-   bei System.Windows.Forms.Control.WndProc(Message& m)
-   bei System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+--- Step 5: SQLGetTypeInfo ---
+SQLGetTypeInfo = SQL_SUCCESS
 
-
-InnerException1.Stack Trace Message:
-Das SafeHandle wurde geschlossen.
-
-InnerException1.Stack Trace:
-   bei Microsoft.Mashup.Evaluator.EvaluationHost.<>c__DisplayClass24_0.<TryReportException>b__1()
-   bei Microsoft.Mashup.Common.SafeExceptions.IgnoreSafeExceptions(IEngineHost host, IHostTrace trace, Action action)
-   bei Microsoft.Mashup.Evaluator.EvaluationHost.TryReportException(IHostTrace trace, IEngineHost engineHost, IMessageChannel channel, Exception exception)
-   bei Microsoft.Mashup.Evaluator.EvaluationHost.TryHandleException(Exception exception)
-   bei Microsoft.Mashup.Evaluator.SafeThread2.HandleException(Exception e)
-   bei Microsoft.Mashup.Evaluator.SafeThread2.<>c__DisplayClass9_0.<CreateAction>b__0(Object o)
-   bei Microsoft.Mashup.Container.EvaluationContainerMain.SafeRun(String[] args)
-   bei Microsoft.Mashup.Container.BootstrapAppDomainManager.Execute(String[] argv)
-
-InnerException1.Invocation Stack Trace:
-   bei Microsoft.Mashup.Host.Document.ExceptionExtensions.GetCurrentInvocationStackTrace()
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromException(Exception e, String prefix)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromInnerExceptions(Exception e, Int32 depth)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromInnerExceptions(Exception e, Int32 depth)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.CreateAdditionalErrorInfo(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo..ctor(String message, Exception exception, Nullable`1 stackTraceInfo, String messageDetail)
-   bei Microsoft.Mashup.Client.UI.Shared.IUIHostExtensions.RaiseErrorDialog(IUIHost uiHost, IWindowHandle activeWindow, FeedbackPackageInfo feedbackPackageInfo, Exception e, LocalizedString dialogTitle, LocalizedString dialogMessage, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.Excel.Native.NativeUserFeedbackServices.ReportException(IWindowHandle activeWindow, IUIHost uiHost, FeedbackPackageInfo feedbackPackageInfo, Exception e, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.<>c__DisplayClass14_0.<HandleException>b__0()
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.HandleException(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.HandleImportEvaluationException(ExceptionResult exceptionView, Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.OnGetPreviewResult(PreviewResult preview, Query query, String sourceID, String formulaTitle, Nullable`1 explicitImportDestination, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass65_0.<GetPreviewResult>b__1()
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeWorkbookStorageServices.Microsoft.Mashup.Client.Excel.Shim.IDeferredStorageInvoker.InvokeDeferredStorageAction(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.InvokeCoauthAction(IWorkbook workbook, UndoableActionType actionType, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.NotifyGetDataPresence(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass59_0.<InvokeOnWorkbook>b__0(IWorkbook workbook, IWindowContext windowContext)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.InvokeOnWorkbook[T](Func`3 action, T defaultValue)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.<>c__DisplayClass90_0.<OnQuerySettingsResolved>b__0()
-   bei Microsoft.Mashup.Host.Document.ExceptionHandlerExtensions.HandleExceptions(IExceptionHandler exceptionHandler, Action action)
-   bei System.RuntimeMethodHandle.InvokeMethod(Object target, Object[] arguments, Signature sig, Boolean constructor)
-   bei System.Reflection.RuntimeMethodInfo.UnsafeInvokeInternal(Object obj, Object[] parameters, Object[] arguments)
-   bei System.Delegate.DynamicInvokeImpl(Object[] args)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackDo(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackHelper(Object obj)
-   bei System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallback(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbacks()
-   bei System.Windows.Forms.Control.WndProc(Message& m)
-   bei System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
-
-
-InnerException2.Stack Trace Message:
-Das SafeHandle wurde geschlossen.
-
-InnerException2.Stack Trace:
-   bei System.Runtime.InteropServices.SafeHandle.DangerousAddRef(Boolean& success)
-   bei System.StubHelpers.StubHelpers.SafeHandleAddRef(SafeHandle pHandle, Boolean& success)
-   bei Microsoft.Win32.Win32Native.SetEvent(SafeWaitHandle handle)
-   bei System.Threading.EventWaitHandle.Set()
-   bei Microsoft.Mashup.Evaluator.FirewallDocumentEvaluator.<>c__DisplayClass5_0.<BeginGetResult>b__0(EvaluationResult2`1 result)
-   bei Microsoft.Mashup.Evaluator.FirewallDocumentEvaluator.BeginGetResultInternal[T](DocumentEvaluationParameters parameters, Action`1 callback)
-   bei Microsoft.Mashup.Evaluator.Interface.IDocumentEvaluatorExtensions.GetResult[T](IDocumentEvaluator`1 evaluator, DocumentEvaluationParameters parameters)
-   bei Microsoft.Mashup.Evaluator.RemoteDocumentEvaluator.Service.OnBeginGetResult[T](IMessageChannel channel, BeginGetResultMessage message, Action`1 action)
-   bei Microsoft.Mashup.Evaluator.RemoteDocumentEvaluator.Service.OnBeginGetPreviewValueSource(IMessageChannel channel, BeginGetPreviewValueSourceMessage message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.ChannelMessenger.ChannelMessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.Dispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.ChannelMessenger.OnMessageWithUnknownChannel(IMessageChannel baseChannel, MessageWithUnknownChannel messageWithUnknownChannel)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.ChannelMessenger.ChannelMessageHandlers.TryDispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.MessageHandlers.Dispatch(IMessageChannel channel, Message message)
-   bei Microsoft.Mashup.Evaluator.EvaluationHost.Run()
-   bei Microsoft.Mashup.Container.EvaluationContainerMain.Run(Object args)
-   bei Microsoft.Mashup.Evaluator.SafeThread2.<>c__DisplayClass9_0.<CreateAction>b__0(Object o)
-
-InnerException2.Invocation Stack Trace:
-   bei Microsoft.Mashup.Host.Document.ExceptionExtensions.GetCurrentInvocationStackTrace()
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromException(Exception e, String prefix)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromInnerExceptions(Exception e, Int32 depth)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromInnerExceptions(Exception e, Int32 depth)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.GetFeedbackValuesFromInnerExceptions(Exception e, Int32 depth)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo.CreateAdditionalErrorInfo(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.FeedbackErrorInfo..ctor(String message, Exception exception, Nullable`1 stackTraceInfo, String messageDetail)
-   bei Microsoft.Mashup.Client.UI.Shared.IUIHostExtensions.RaiseErrorDialog(IUIHost uiHost, IWindowHandle activeWindow, FeedbackPackageInfo feedbackPackageInfo, Exception e, LocalizedString dialogTitle, LocalizedString dialogMessage, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.Excel.Native.NativeUserFeedbackServices.ReportException(IWindowHandle activeWindow, IUIHost uiHost, FeedbackPackageInfo feedbackPackageInfo, Exception e, Boolean useGDICapture)
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.<>c__DisplayClass14_0.<HandleException>b__0()
-   bei Microsoft.Mashup.Client.UI.Shared.UnexpectedExceptionHandler.HandleException(Exception e)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.HandleImportEvaluationException(ExceptionResult exceptionView, Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.OnGetPreviewResult(PreviewResult preview, Query query, String sourceID, String formulaTitle, Nullable`1 explicitImportDestination, Boolean isNewQuery, Boolean isFromEditor)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass65_0.<GetPreviewResult>b__1()
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeWorkbookStorageServices.Microsoft.Mashup.Client.Excel.Shim.IDeferredStorageInvoker.InvokeDeferredStorageAction(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.InvokeCoauthAction(IWorkbook workbook, UndoableActionType actionType, Action action)
-   bei Microsoft.Mashup.Client.Excel.Shim.NativeCoAuthServices.NotifyGetDataPresence(IWorkbook workbook, Action action)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.<>c__DisplayClass59_0.<InvokeOnWorkbook>b__0(IWorkbook workbook, IWindowContext windowContext)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.InvokeOnWorkbook[T](Func`3 action, T defaultValue)
-   bei Microsoft.Mashup.Client.Excel.ExcelDataImporter.GetPreviewResult(Query query, String sourceID, String formulaTitle, Boolean isNewQuery, Boolean isFromEditor, Nullable`1 explicitImportDestination)
-   bei Microsoft.Mashup.Client.UI.Shared.DataImporter.<>c__DisplayClass90_0.<OnQuerySettingsResolved>b__0()
-   bei Microsoft.Mashup.Host.Document.ExceptionHandlerExtensions.HandleExceptions(IExceptionHandler exceptionHandler, Action action)
-   bei System.RuntimeMethodHandle.InvokeMethod(Object target, Object[] arguments, Signature sig, Boolean constructor)
-   bei System.Reflection.RuntimeMethodInfo.UnsafeInvokeInternal(Object obj, Object[] parameters, Object[] arguments)
-   bei System.Delegate.DynamicInvokeImpl(Object[] args)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackDo(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbackHelper(Object obj)
-   bei System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
-   bei System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallback(ThreadMethodEntry tme)
-   bei System.Windows.Forms.Control.InvokeMarshaledCallbacks()
-   bei System.Windows.Forms.Control.WndProc(Message& m)
-   bei System.Windows.Forms.NativeWindow.Callback(IntPtr hWnd, Int32 msg, IntPtr wparam, IntPtr lparam)
+--- Cleanup ---
+SQLDisconnect done
+All handles freed
 
 
-Supports Premium Content:
-True
+[2026-08-15 09:04:54] DllMain: DLL_PROCESS_ATTACH - DLL loaded successfully (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLAllocHandle: entry (-)
+[2026-08-15 09:04:54] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLSetEnvAttr: entry (-)
+[2026-08-15 09:04:54] SQLSetEnvAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLAllocHandle: entry (-)
+[2026-08-15 09:04:54] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLGetInfo: entry (-)
+[2026-08-15 09:04:54] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLGetInfo: entry (-)
+[2026-08-15 09:04:54] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLGetInfo: entry (-)
+[2026-08-15 09:04:54] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLSetConnectAttr: entry (-)
+[2026-08-15 09:04:54] SQLSetConnectAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:54] SQLDriverConnect: entry (-)
+[2026-08-15 09:04:55] SQLDriverConnect: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLError: entry (-)
+[2026-08-15 09:04:55] SQLError: exit (SQL_NO_DATA)
+[2026-08-15 09:04:55] SQLGetFunctions: entry (-)
+[2026-08-15 09:04:55] SQLGetFunctions: ODBC3_ALL: arr[0]=16368 arr[1]=28 arr[2]=47872 arr[3]=24640 size=250 (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetFunctions: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetInfo: entry (-)
+[2026-08-15 09:04:55] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetInfo: entry (-)
+[2026-08-15 09:04:55] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetInfo: entry (-)
+[2026-08-15 09:04:55] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetInfo: entry (-)
+[2026-08-15 09:04:55] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetInfo: entry (-)
+[2026-08-15 09:04:55] SQLGetInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLAllocHandle: entry (-)
+[2026-08-15 09:04:55] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:55] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:55] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:55] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:55] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLExecDirect: entry (-)
+[2026-08-15 09:04:55] SQLExecDirect: === ENTER === (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLExecDirect: Connection OK, getting SQL text (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLExecDirect: SQL: SELECT MATNR FROM MARA (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLExecDirect: Simple table read: table=MARA fields=MATNR where= (SQL_SUCCESS)
+[2026-08-15 09:04:55] SQLExecDirect: Calling rfcReadTableChunked... (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: rfcReadTableChunked OK, rows=13359 cols=1 (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLNumResultCols: entry (-)
+[2026-08-15 09:04:58] SQLNumResultCols: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLDescribeCol: entry (-)
+[2026-08-15 09:04:58] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFetch: entry (-)
+[2026-08-15 09:04:58] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetData: entry (-)
+[2026-08-15 09:04:58] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLRowCount: entry (-)
+[2026-08-15 09:04:58] SQLRowCount: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLFreeHandle: entry (-)
+[2026-08-15 09:04:58] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLAllocHandle: entry (-)
+[2026-08-15 09:04:58] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:58] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:58] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:58] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:04:58] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: entry (-)
+[2026-08-15 09:04:58] SQLExecDirect: === ENTER === (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: Connection OK, getting SQL text (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: SQL: SELECT MATNR, ERNAM FROM MARA (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: Simple table read: table=MARA fields=MATNR, ERNAM where= (SQL_SUCCESS)
+[2026-08-15 09:04:58] SQLExecDirect: Calling rfcReadTableChunked... (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: rfcReadTableChunked OK, rows=13359 cols=1 (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLNumResultCols: entry (-)
+[2026-08-15 09:05:01] SQLNumResultCols: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLDescribeCol: entry (-)
+[2026-08-15 09:05:01] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLRowCount: entry (-)
+[2026-08-15 09:05:01] SQLRowCount: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFreeHandle: entry (-)
+[2026-08-15 09:05:01] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLAllocHandle: entry (-)
+[2026-08-15 09:05:01] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: entry (-)
+[2026-08-15 09:05:01] SQLExecDirect: === ENTER === (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: Connection OK, getting SQL text (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: SQL: SELECT MATNR FROM MARA WHERE MATNR LIKE 'A%' (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: Simple table read: table=MARA fields=MATNR where=MATNR LIKE 'A%' (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: Calling rfcReadTableChunked... (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: rfcReadTableChunked OK, rows=589 cols=1 (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLNumResultCols: entry (-)
+[2026-08-15 09:05:01] SQLNumResultCols: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLDescribeCol: entry (-)
+[2026-08-15 09:05:01] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFetch: entry (-)
+[2026-08-15 09:05:01] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetData: entry (-)
+[2026-08-15 09:05:01] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLRowCount: entry (-)
+[2026-08-15 09:05:01] SQLRowCount: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLFreeHandle: entry (-)
+[2026-08-15 09:05:01] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLAllocHandle: entry (-)
+[2026-08-15 09:05:01] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:01] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: entry (-)
+[2026-08-15 09:05:01] SQLExecDirect: === ENTER === (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: Connection OK, getting SQL text (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: SQL: SELECT * FROM MARA (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: Simple table read: table=MARA fields=* where= (SQL_SUCCESS)
+[2026-08-15 09:05:01] SQLExecDirect: Calling rfcReadTableChunked... (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLExecDirect: rfcReadTableChunked OK, rows=13359 cols=4 (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLExecDirect: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLNumResultCols: entry (-)
+[2026-08-15 09:05:05] SQLNumResultCols: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLDescribeCol: entry (-)
+[2026-08-15 09:05:05] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLDescribeCol: entry (-)
+[2026-08-15 09:05:05] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLDescribeCol: entry (-)
+[2026-08-15 09:05:05] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLDescribeCol: entry (-)
+[2026-08-15 09:05:05] SQLDescribeCol: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFetch: entry (-)
+[2026-08-15 09:05:05] SQLFetch: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetData: entry (-)
+[2026-08-15 09:05:05] SQLGetData: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLRowCount: entry (-)
+[2026-08-15 09:05:05] SQLRowCount: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFreeHandle: entry (-)
+[2026-08-15 09:05:05] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLAllocHandle: entry (-)
+[2026-08-15 09:05:05] SQLAllocHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:05] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:05] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:05] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetStmtAttr: entry (-)
+[2026-08-15 09:05:05] SQLGetStmtAttr: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLGetTypeInfo: entry (-)
+[2026-08-15 09:05:05] SQLGetTypeInfo: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFreeHandle: entry (-)
+[2026-08-15 09:05:05] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLDisconnect: entry (-)
+[2026-08-15 09:05:05] SQLDisconnect: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFreeHandle: entry (-)
+[2026-08-15 09:05:05] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] SQLFreeHandle: entry (-)
+[2026-08-15 09:05:05] SQLFreeHandle: exit (SQL_SUCCESS)
+[2026-08-15 09:05:05] DllMain: DLL_PROCESS_DETACH - DLL unloaded (SQL_SUCCESS)
 
-Formulas:
 
 
-section Section1;
+**** Log file opened at 2026-08-15 09:04:54.954260 UTC+02:00 (Mitteleuropäische Zeit), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 18
+Compilation date          : Dec  1 2025 21:35:24
+CPIC library              : 754.2025.08.18 version 3
+NI library                : 40
+Kernel Release            : 754 Patch Level 627
+Current working directory : C:\Scripts\SAP_ODBC
+Program                   : test_odbc3
+Process ID                : 43668
+User                      : gros
+Hardware                  : PC with Windows NT 32x AMD64 Level 6 (Mod 183 Step 1)
+Binary Type               : 64bit
+Operating_system          : Windows NT 10.0
+Hostname                  : PCKL669
+IP address                : 192.168.1.64
+IPv6 address              : fe80::31dd:f2cb:8abf:83e6
+NI IPv6 status            : inactive
+Global trace level        : 0 : None
 
-shared Abfrage1 = let
-    Quelle = Odbc.Query("dsn=SAP_DAA", "SELECT * FROM MARA")
-in
-    Quelle;
+2026-08-15 09:04:54.954320 [39248] >> Info entry
+	Did not find config file C:\Scripts\SAP_ODBC\sapnwrfc.ini.
+
+=== Test Complete ===
