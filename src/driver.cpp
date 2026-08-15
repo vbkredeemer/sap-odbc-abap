@@ -666,6 +666,28 @@ static void fillBoundColumns(SapStatement* stmt) {
             short val = (short)atoi(value.c_str());
             if (b.rgbValue) *(short*)b.rgbValue = val;
             if (b.pcbValue) *b.pcbValue = sizeof(short);
+        } else if (b.fCType == SQL_C_TYPE_DATE) {
+            // Parse "YYYY-MM-DD" into DATE_STRUCT
+            DATE_STRUCT ds;
+            memset(&ds, 0, sizeof(ds));
+            if (value.length() >= 10) {
+                ds.year  = (SQLSMALLINT)atoi(value.substr(0, 4).c_str());
+                ds.month = (SQLUSMALLINT)atoi(value.substr(5, 2).c_str());
+                ds.day   = (SQLUSMALLINT)atoi(value.substr(8, 2).c_str());
+            }
+            if (b.rgbValue) *(DATE_STRUCT*)b.rgbValue = ds;
+            if (b.pcbValue) *b.pcbValue = sizeof(DATE_STRUCT);
+        } else if (b.fCType == SQL_C_TYPE_TIME) {
+            // Parse "HH:MM:SS" into TIME_STRUCT
+            TIME_STRUCT ts;
+            memset(&ts, 0, sizeof(ts));
+            if (value.length() >= 8) {
+                ts.hour   = (SQLUSMALLINT)atoi(value.substr(0, 2).c_str());
+                ts.minute = (SQLUSMALLINT)atoi(value.substr(3, 2).c_str());
+                ts.second = (SQLUSMALLINT)atoi(value.substr(6, 2).c_str());
+            }
+            if (b.rgbValue) *(TIME_STRUCT*)b.rgbValue = ts;
+            if (b.pcbValue) *b.pcbValue = sizeof(TIME_STRUCT);
         } else {
             // Default: treat as string
             if (b.pcbValue) *b.pcbValue = (SQLLEN)value.length();
@@ -798,6 +820,34 @@ SQLRETURN SQL_API SQLGetData(SQLHSTMT hstmt, SQLUSMALLINT icol,
         double val = atof(value.c_str());
         if (rgbValue) *(double*)rgbValue = val;
         if (pcbValue) *pcbValue = sizeof(double);
+        return SQL_SUCCESS;
+    }
+
+    // Return as DATE_STRUCT (SQL_C_TYPE_DATE) — parse "YYYY-MM-DD"
+    if (fCType == SQL_C_TYPE_DATE) {
+        DATE_STRUCT ds;
+        memset(&ds, 0, sizeof(ds));
+        if (value.length() >= 10) {
+            ds.year  = (SQLSMALLINT)atoi(value.substr(0, 4).c_str());
+            ds.month = (SQLUSMALLINT)atoi(value.substr(5, 2).c_str());
+            ds.day   = (SQLUSMALLINT)atoi(value.substr(8, 2).c_str());
+        }
+        if (rgbValue) *(DATE_STRUCT*)rgbValue = ds;
+        if (pcbValue) *pcbValue = sizeof(DATE_STRUCT);
+        return SQL_SUCCESS;
+    }
+
+    // Return as TIME_STRUCT (SQL_C_TYPE_TIME) — parse "HH:MM:SS"
+    if (fCType == SQL_C_TYPE_TIME) {
+        TIME_STRUCT ts;
+        memset(&ts, 0, sizeof(ts));
+        if (value.length() >= 8) {
+            ts.hour   = (SQLUSMALLINT)atoi(value.substr(0, 2).c_str());
+            ts.minute = (SQLUSMALLINT)atoi(value.substr(3, 2).c_str());
+            ts.second = (SQLUSMALLINT)atoi(value.substr(6, 2).c_str());
+        }
+        if (rgbValue) *(TIME_STRUCT*)rgbValue = ts;
+        if (pcbValue) *pcbValue = sizeof(TIME_STRUCT);
         return SQL_SUCCESS;
     }
 
