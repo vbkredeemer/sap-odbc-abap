@@ -6,13 +6,6 @@
 *        Nur für einfache Table-Reads (keine Joins, keine Aggregation)
 *        ORDER BY wird unterstützt für konsistentes Paging
 *---------------------------------------------------------------------*
-* Installation:
-* 1. SE37 → Funktionsgruppe Z_SQL (dieselbe wie Z_EXECUTE_SQL)
-* 2. Neuer Funktionsbaustein Z_READ_TABLE
-* 3. Attribute: Remote-Enabled Module ✓
-* 4. Interface wie unten dokumentiert
-* 5. Code einfügen
-*---------------------------------------------------------------------*
 * Interface:
 *
 * IMPORTING:
@@ -55,23 +48,23 @@ FUNCTION Z_READ_TABLE.
 *"----------------------------------------------------------------------
 
   DATA: lv_where_clause TYPE string,
-        lv_select        TYPE string,
-        lv_orderby       TYPE string,
-        lt_fields_cat    TYPE TABLE OF ZSQL_FIELD,
-        ls_field_cat     TYPE ZSQL_FIELD,
-        lt_data          TYPE TABLE OF ZSQL_ROW,
-        ls_data          TYPE ZSQL_ROW,
-        lo_table_descr   TYPE REF TO cl_abap_tabledescr,
-        lo_struct_descr  TYPE REF TO cl_abap_structdescr,
-        lt_dynamic       TYPE REF TO data,
-        ls_dynamic       TYPE REF TO data,
-        lv_fieldname     TYPE string,
-        lv_field_value   TYPE string,
-        lv_char_val      TYPE c LENGTH 100,
-        lv_rowdata       TYPE string,
-        lv_total_rows    TYPE i,
-        lv_check_table   TYPE string,
-        lv_tabname       TYPE ddobjname.
+        lv_select       TYPE string,
+        lv_orderby      TYPE string,
+        lt_fields_cat   TYPE TABLE OF ZSQL_FIELD,
+        ls_field_cat    TYPE ZSQL_FIELD,
+        lt_data         TYPE TABLE OF ZSQL_ROW,
+        ls_data         TYPE ZSQL_ROW,
+        lo_table_descr  TYPE REF TO cl_abap_tabledescr,
+        lo_struct_descr TYPE REF TO cl_abap_structdescr,
+        lt_dynamic      TYPE REF TO data,
+        ls_dynamic      TYPE REF TO data,
+        lv_fieldname    TYPE string,
+        lv_field_value  TYPE string,
+        lv_char_val     TYPE c LENGTH 100,
+        lv_rowdata      TYPE string,
+        lv_total_rows   TYPE i,
+        lv_check_table  TYPE string,
+        lv_tabname      TYPE ddobjname.
 
   CLEAR: ev_error, ev_row_count, ev_has_more.
   CLEAR: et_fields[], et_data[].
@@ -139,43 +132,65 @@ FUNCTION Z_READ_TABLE.
 
 *---------------------------------------------------------------------
 * Build and execute dynamic SELECT
-* Use UP TO ROWS to limit, then delete skipped rows
 *---------------------------------------------------------------------
-  DATA: lv_max_fetch TYPE i.
-  lv_max_fetch = iv_rowcount + iv_rowskips.
-  IF iv_max_rows > 0 AND lv_max_fetch > iv_max_rows.
-    lv_max_fetch = iv_max_rows.
+  DATA: lv_fetch_limit TYPE i,
+        lv_offset      TYPE i.
+
+  lv_offset = iv_rowskips.
+
+  IF iv_rowcount > 0.
+    lv_fetch_limit = iv_rowcount.
+  ELSE.
+    lv_fetch_limit = 100000.  " safety limit
   ENDIF.
-  IF lv_max_fetch = 0.
-    lv_max_fetch = 100000.  " safety limit
+
+  " Absolute Obergrenze berücksichtigen
+  IF iv_max_rows > 0.
+    IF ( lv_offset + lv_fetch_limit ) > iv_max_rows.
+      lv_fetch_limit = iv_max_rows - lv_offset.
+      IF lv_fetch_limit < 0.
+        lv_fetch_limit = 0.
+      ENDIF.
+    ENDIF.
   ENDIF.
 
   TRY.
-    " Deklarieren des Feldsymbols und Zuweisung VOR dem SELECT
-    FIELD-SYMBOLS: <fs_table>   TYPE STANDARD TABLE.
+    FIELD-SYMBOLS: <fs_table> TYPE STANDARD TABLE.
     ASSIGN lt_dynamic->* TO <fs_table>.
 
-    " Execute — use dynamic SELECT with subrc check
-    " NOTE: ABAP dynamic SELECT needs Open SQL syntax
-    " We use SELECT (fields) FROM (table) WHERE (where) ORDER BY (orderby)
-
-      IF lv_where_clause IS NOT INITIAL AND lv_orderby IS NOT INITIAL.
+    IF iv_orderby IS NOT INITIAL.
+      " OPTIMIERTES DB-PAGING (ABAP 7.50+): OFFSET erfordert zwingend ORDER BY
+      IF lv_where_clause IS NOT INITIAL.
         SELECT (lv_select) FROM (lv_check_table)
           WHERE (iv_where)
           ORDER BY (iv_orderby)
-          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
-      ELSEIF lv_where_clause IS NOT INITIAL.
-        SELECT (lv_select) FROM (lv_check_table)
-          WHERE (iv_where)
-          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
-      ELSEIF lv_orderby IS NOT INITIAL.
-        SELECT (lv_select) FROM (lv_check_table)
-          ORDER BY (iv_orderby)
-          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table>
+          UP TO @lv_fetch_limit ROWS
+          OFFSET @lv_offset.
       ELSE.
         SELECT (lv_select) FROM (lv_check_table)
-          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
+          ORDER BY (iv_orderby)
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table>
+          UP TO @lv_fetch_limit ROWS
+          OFFSET @lv_offset.
       ENDIF.
+
+    ELSE.
+      " FALLBACK IN-MEMORY PAGING: Ohne ORDER BY ist kein OFFSET auf der DB zulässig
+      DATA: lv_max_fetch TYPE i.
+      lv_max_fetch = lv_offset + lv_fetch_limit.
+
+      IF lv_where_clause IS NOT INITIAL.
+        SELECT (lv_select) FROM (lv_check_table)
+          WHERE (iv_where)
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table>
+          UP TO @lv_max_fetch ROWS.
+      ELSE.
+        SELECT (lv_select) FROM (lv_check_table)
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table>
+          UP TO @lv_max_fetch ROWS.
+      ENDIF.
+    ENDIF.
 
     CATCH cx_sy_dynamic_osql_error INTO DATA(lo_sql_error).
       ev_error = lo_sql_error->get_text( ).
@@ -186,8 +201,7 @@ FUNCTION Z_READ_TABLE.
   ENDTRY.
 
 *---------------------------------------------------------------------*
-* Get field metadata via DDIF_NAMETAB_GET (flat list including .INCLUDE fields)
-* get_components() misses fields inside .INCLUDE structures (e.g. MARA-ERNAM)
+* Get field metadata via DDIF_NAMETAB_GET 
 *---------------------------------------------------------------------*
   DATA: lt_nametab TYPE TABLE OF dfies,
         ls_nametab TYPE dfies.
@@ -198,7 +212,7 @@ FUNCTION Z_READ_TABLE.
     EXPORTING
       tabname        = lv_tabname
     TABLES
-      dfies_tab     = lt_nametab
+      dfies_tab      = lt_nametab
     EXCEPTIONS
       not_found      = 1
       OTHERS         = 2.
@@ -238,7 +252,6 @@ FUNCTION Z_READ_TABLE.
                  <fs_field>   TYPE ANY.
 
   LOOP AT lt_nametab INTO ls_nametab.
-    " Check if field is requested
     IF lv_all_fields = 'X'.
       lv_field_requested = 'X'.
     ELSE.
@@ -291,32 +304,26 @@ FUNCTION Z_READ_TABLE.
   ENDLOOP.
 
 *---------------------------------------------------------------------
-* Delete skipped rows (ROWSKIPS)
+* Fallback: Delete skipped rows (nur wenn kein ORDER BY übergeben wurde)
 *---------------------------------------------------------------------
-  lv_total_rows = lines( <fs_table> ).
-
-  IF iv_rowskips > 0.
+  IF iv_orderby IS INITIAL AND iv_rowskips > 0.
+    lv_total_rows = lines( <fs_table> ).
     IF iv_rowskips >= lv_total_rows.
-      " All rows were skipped — no data to return
       IF lv_total_rows = lv_max_fetch.
         ev_has_more = 'X'.
       ENDIF.
       RETURN.
     ENDIF.
-    " Delete the first ROWSKIPS rows
     DELETE <fs_table> FROM 1 TO iv_rowskips.
-    lv_total_rows = lines( <fs_table> ).
   ENDIF.
 
 *---------------------------------------------------------------------
 * Check if there are more rows
 *---------------------------------------------------------------------
-  " If we fetched exactly lv_max_fetch rows, there might be more
-  DATA: lv_fetched_total TYPE i.
-  lv_fetched_total = lines( <fs_table> ) + iv_rowskips.
-
-  IF lv_fetched_total >= lv_max_fetch AND iv_rowcount > 0.
-    ev_has_more = 'X'.
+  IF iv_rowcount > 0.
+    IF lines( <fs_table> ) = lv_fetch_limit.
+      ev_has_more = 'X'.
+    ENDIF.
   ENDIF.
 
 *---------------------------------------------------------------------
@@ -326,14 +333,11 @@ FUNCTION Z_READ_TABLE.
     CLEAR lv_rowdata.
 
     LOOP AT et_fields INTO ls_field_cat.
-      " Get field value dynamically
       ASSIGN COMPONENT ls_field_cat-fieldname OF STRUCTURE <fs_dynamic> TO <fs_field>.
       IF sy-subrc = 0.
-        " Type-aware conversion to MSSQL-compatible formats
         CLEAR lv_field_value.
         CASE ls_field_cat-datatype.
           WHEN 'D'.
-            " SAP DATE YYYYMMDD → MSSQL YYYY-MM-DD
             IF <fs_field> IS NOT INITIAL.
               DATA(lv_d) = |{ <fs_field> }|.
               IF strlen( lv_d ) = 8.
@@ -343,7 +347,6 @@ FUNCTION Z_READ_TABLE.
               ENDIF.
             ENDIF.
           WHEN 'T'.
-            " SAP TIME HHMMSS → MSSQL HH:MM:SS
             IF <fs_field> IS NOT INITIAL.
               DATA(lv_t) = |{ <fs_field> }|.
               IF strlen( lv_t ) = 6.
@@ -356,7 +359,6 @@ FUNCTION Z_READ_TABLE.
             lv_field_value = |{ <fs_field> }|.
             CONDENSE lv_field_value.
           WHEN 'P'.
-            " Packed decimal with dot, no thousand separators
             IF <fs_field> IS NOT INITIAL.
               WRITE <fs_field> TO lv_char_val NO-GROUPING NO-SIGN.
               IF <fs_field> < 0.
@@ -368,7 +370,6 @@ FUNCTION Z_READ_TABLE.
               SHIFT lv_field_value LEFT DELETING LEADING SPACE.
             ENDIF.
           WHEN 'F'.
-            " Float with dot notation
             IF <fs_field> IS NOT INITIAL.
               WRITE <fs_field> TO lv_char_val NO-GROUPING NO-SIGN.
               IF <fs_field> < 0.
@@ -380,12 +381,11 @@ FUNCTION Z_READ_TABLE.
               SHIFT lv_field_value LEFT DELETING LEADING SPACE.
             ENDIF.
           WHEN 'X'.
-            " RAW → hex string with 0x prefix
             DATA(lv_x) = |{ <fs_field> }|.
             CONCATENATE '0x' lv_x INTO lv_field_value.
           WHEN OTHERS.
-            " CHAR/STRING — remove leading/trailing spaces
             lv_field_value = |{ <fs_field> }|.
+            REPLACE ALL OCCURRENCES OF '|' IN lv_field_value WITH space.
             SHIFT lv_field_value RIGHT DELETING TRAILING space.
             SHIFT lv_field_value LEFT DELETING LEADING space.
         ENDCASE.
