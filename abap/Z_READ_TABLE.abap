@@ -162,18 +162,18 @@ FUNCTION Z_READ_TABLE.
         SELECT (lv_select) FROM (lv_check_table)
           WHERE (iv_where)
           ORDER BY (iv_orderby)
-          INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ELSEIF lv_where_clause IS NOT INITIAL.
         SELECT (lv_select) FROM (lv_check_table)
           WHERE (iv_where)
-          INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ELSEIF lv_orderby IS NOT INITIAL.
         SELECT (lv_select) FROM (lv_check_table)
           ORDER BY (iv_orderby)
-          INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ELSE.
         SELECT (lv_select) FROM (lv_check_table)
-          INTO TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
+          INTO CORRESPONDING FIELDS OF TABLE @<fs_table> UP TO @lv_max_fetch ROWS.
       ENDIF.
 
     CATCH cx_sy_dynamic_osql_error INTO DATA(lo_sql_error).
