@@ -70,7 +70,8 @@ FUNCTION Z_READ_TABLE.
         lv_char_val      TYPE c LENGTH 100,
         lv_rowdata       TYPE string,
         lv_total_rows    TYPE i,
-        lv_check_table   TYPE string.
+        lv_check_table   TYPE string,
+        lv_tabname       TYPE ddobjname.
 
   CLEAR: ev_error, ev_row_count, ev_has_more.
   CLEAR: et_fields[], et_data[].
@@ -191,9 +192,11 @@ FUNCTION Z_READ_TABLE.
   DATA: lt_nametab TYPE TABLE OF dfies,
         ls_nametab TYPE dfies.
 
+  lv_tabname = lv_check_table.
+
   CALL FUNCTION 'DDIF_NAMETAB_GET'
     EXPORTING
-      tabname        = lv_check_table
+      tabname        = lv_tabname
     TABLES
       dfies_tab     = lt_nametab
     EXCEPTIONS
