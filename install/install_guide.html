@@ -148,8 +148,8 @@ hr {
 <table>
 <tr><th>Komponente</th><th>Anforderung</th></tr>
 <tr><td>Betriebssystem</td><td>Windows 10/11 (x64) oder Windows Server 2016+ (x64)</td></tr>
-<tr><td>SAP NWRFC SDK</td><td>Version 7.50 (Windows x64) — benötigt als <code>sapnwrfc.dll</code></td></tr>
-<tr><td>ODBC-Anwendung</td><td>Excel, Power BI, Access, DBeaver oder jedes ODBC-kompatible Tool</td></tr>
+<tr><td>SAP NWRFC SDK</td><td>Version 7.50 (Windows x64) — benötigt als <code>sapnwrfc.dll</code> + 3 ICU-DLLs</td></tr>
+<tr><td>ODBC-Anwendung</td><td>QlikView, QlikSense oder jedes ODBC-kompatible Tool</td></tr>
 </table>
 
 <h2>Lieferumfang</h2>
@@ -158,7 +158,9 @@ hr {
 <tr><th>Datei</th><th>Beschreibung</th></tr>
 <tr><td><code>sapodbcabap.dll</code></td><td>Der ODBC-Treiber (Windows x64, vorkompiliert)</td></tr>
 <tr><td><code>install_driver.ps1</code></td><td>PowerShell-Skript zur automatischen Installation</td></tr>
+<tr><td><code>Installationsanleitung.pdf</code></td><td>Schritt-für-Schritt-Anleitung als PDF</td></tr>
 <tr><td><code>abap-source.zip</code></td><td>SAP-Funktionsbausteine (für das SAP-System)</td></tr>
+<tr><td><code>test_programs.zip</code></td><td>Test-Programme für die Verbindungskontrolle</td></tr>
 </table>
 
 <hr>
@@ -169,18 +171,26 @@ hr {
 <span class="step-number">1</span>
 <h3 style="margin-top:0; display:inline;">DLLs installieren</h3>
 
-<p>Erstelle ein Verzeichnis, z.B. <code>C:\Scripts\SAP_ODBC\</code> und kopiere folgende Dateien dorthin:</p>
+<p>Erstelle ein Verzeichnis, z.B. <code>C:\Scripts\SAP_ODBC\</code> und kopiere folgende <strong>5 DLLs</strong> dorthin:</p>
 
 <ul>
 <li><strong><code>sapodbcabap.dll</code></strong> — aus diesem Release</li>
 <li><strong><code>sapnwrfc.dll</code></strong> — aus dem SAP NWRFC SDK 7.50</li>
-<li><strong><code>libgcc_s_seh-1.dll</code></strong> — aus diesem Release</li>
-<li><strong><code>libstdc++-6.dll</code></strong> — aus diesem Release</li>
+<li><strong><code>icudt57.dll</code></strong> — aus dem SAP NWRFC SDK 7.50</li>
+<li><strong><code>icuin57.dll</code></strong> — aus dem SAP NWRFC SDK 7.50</li>
+<li><strong><code>icuuc57.dll</code></strong> — aus dem SAP NWRFC SDK 7.50</li>
 </ul>
 
 <div class="note">
-Die <code>sapnwrfc.dll</code> befindet sich im NWRFC SDK Verzeichnis unter <code>nwrfcsdk\bin\</code>.
+Die SAP-DLLs befinden sich im NWRFC SDK Verzeichnis unter <code>nwrfcsdk\bin\</code>.
 Falls das SDK noch nicht installiert ist, kann es von SAP heruntergeladen werden (SAP Note 2573790).
+Alle 5 DLLs müssen im selben Verzeichnis liegen.
+</div>
+
+<div class="note">
+Der Treiber ist mit MinGW kompiliert und die C++-Runtime ist <strong>statisch gelinkt</strong> —
+es werden <strong>keine</strong> zusätzlichen Runtime-DLLs (wie <code>libgcc_s_seh-1.dll</code> oder
+<code>libstdc++-6.dll</code>) benötigt.
 </div>
 </div>
 
@@ -192,15 +202,17 @@ Falls das SDK noch nicht installiert ist, kann es von SAP heruntergeladen werden
 
 <pre>.\install_driver.ps1</pre>
 
-<p>Das Skript fragt interaktiv die Verbindungsparameter ab und registriert automatisch:</p>
+<p>Das Skript:</p>
 <ul>
-<li>den ODBC-Treiber in der Windows-Registry</li>
-<li>eine System-DSN mit allen Verbindungsoptionen</li>
+<li>prüft, dass alle 5 DLLs vorhanden sind</li>
+<li>fragt interaktiv die Verbindungsparameter ab (User und Passwort sind Pflicht)</li>
+<li>registriert den ODBC-Treiber in der Windows-Registry</li>
+<li>legt eine System-DSN mit allen Verbindungsoptionen an</li>
 </ul>
 
-<p>Alternativ können alle Parameter direkt übergeben werden:</p>
+<p>Alternativ können Parameter direkt übergeben werden:</p>
 
-<pre>.\install_driver.ps1 -SapHost "sap-prod.firma.de" -SysNr "10" -Client "100" -SapUser "DEIN_USER" -Password "geheim"</pre>
+<pre>.\install_driver.ps1 -DSNName "SAP_DAA" -SapHost "jbklsapas1daa.jbdmn.de"</pre>
 
 <div class="warning">
 Das Skript muss als Administrator ausgeführt werden.
@@ -210,26 +222,39 @@ Rechtsklick auf PowerShell → „Als Administrator ausführen".
 
 <div class="step">
 <span class="step-number">3</span>
+<h3 style="margin-top:0; display:inline;">Weitere Systeme anlegen</h3>
+
+<p>Für jedes weitere SAP-System eine eigene DSN anlegen — der Treiber wird nur einmal registriert:</p>
+
+<pre>.\install_driver.ps1 -DSNName "SAP_KAA" -SapHost "jbklsapas1kaa.jbdmn.de"
+.\install_driver.ps1 -DSNName "SAP_PAA" -SapHost "jbklsapas1paa.jbdmn.de"</pre>
+
+<div class="note">
+Client (100), SysNr (10) und Lang (DE) sind vorbelegt. User und Passwort werden immer abgefragt.
+</div>
+</div>
+
+<div class="step">
+<span class="step-number">4</span>
 <h3 style="margin-top:0; display:inline;">Verbindung testen</h3>
 
-<p>In <strong>Excel</strong>:</p>
+<p>In <strong>QlikView</strong>:</p>
 <ol>
-<li>Daten → Externe Daten abrufen → Aus anderen Quellen → ODBC-Datenquelle</li>
-<li>DSN <strong>„SAP_ODBC_ABAP"</strong> auswählen</li>
-<li>SQL eingeben: <code>SELECT * FROM MARA LIMIT 100</code></li>
-<li>Daten werden geladen</li>
+<li>Script-Editor öffnen (Strg+E)</li>
+<li>ODBC-Verbindung anlegen: <code>ODBC CONNECT TO SAP_DAA;</code></li>
+<li>SQL eingeben: <code>SQL SELECT * FROM MARA LIMIT 100;</code></li>
+<li>Daten werden geladen — Datumswerte kommen im Format <code>YYYY-MM-DD</code></li>
 </ol>
 
-<p>In <strong>Power BI</strong>:</p>
+<p>In <strong>QlikSense</strong>:</p>
 <ol>
-<li>Daten abrufen → Andere → ODBC</li>
-<li>DSN <strong>„SAP_ODBC_ABAP"</strong> auswählen</li>
-<li>Erweiterte Optionen: SQL eingeben</li>
+<li>Daten-Verbindung → ODBC → DSN <strong>„SAP_DAA"</strong> auswählen</li>
+<li>SQL eingeben oder Tabellen aus dem Katalog wählen</li>
 <li><code>SELECT * FROM MARA LIMIT 100</code></li>
 </ol>
 
 <p><strong>ODBC-Verbindungsstring</strong> (für SQLDriverConnect):</p>
-<pre>DSN=SAP_ODBC_ABAP;Host=sap-prod.firma.de;SysNr=10;Client=100;User=DEIN_USER;Password=********;Lang=EN</pre>
+<pre>DSN=SAP_DAA;Host=jbklsapas1daa.jbdmn.de;SysNr=10;Client=100;User=DEIN_USER;Password=********;Lang=DE</pre>
 </div>
 
 <hr>
@@ -238,13 +263,13 @@ Rechtsklick auf PowerShell → „Als Administrator ausführen".
 
 <table>
 <tr><th>Parameter</th><th>Beschreibung</th><th>Beispiel</th><th>Pflicht</th></tr>
-<tr><td><code>Host</code></td><td>SAP Applikationsserver (Hostname oder IP)</td><td>sap-prod.firma.de</td><td>Ja</td></tr>
+<tr><td><code>Host</code></td><td>SAP Applikationsserver (Hostname oder IP)</td><td>jbklsapas1daa.jbdmn.de</td><td>Ja</td></tr>
 <tr><td><code>SysNr</code></td><td>Systemnummer</td><td>10</td><td>Ja</td></tr>
 <tr><td><code>Client</code></td><td>SAP-Mandant</td><td>100</td><td>Ja</td></tr>
 <tr><td><code>User</code></td><td>SAP-Benutzer</td><td>DEIN_USER</td><td>Ja</td></tr>
 <tr><td><code>Password</code></td><td>Passwort</td><td>********</td><td>Ja</td></tr>
-<tr><td><code>Lang</code></td><td>Anmeldesprache</td><td>EN</td><td>Nein (Default: DE)</td></tr>
-<tr><td><code>MaxRows</code></td><td>Maximale Zeilen pro Query</td><td>50000</td><td>Nein (Default: 30000)</td></tr>
+<tr><td><code>Lang</code></td><td>Anmeldesprache</td><td>DE</td><td>Nein (Default: DE)</td></tr>
+<tr><td><code>MaxRows</code></td><td>Maximale Zeilen pro Query</td><td>50000</td><td>Nein (Default: 50000)</td></tr>
 </table>
 
 <hr>
@@ -256,7 +281,8 @@ Rechtsklick auf PowerShell → „Als Administrator ausführen".
 <pre>SELECT * FROM MARA LIMIT 100
 SELECT MATNR, MTART, ERSDA FROM MARA WHERE MTART = 'FERT' ORDER BY MATNR</pre>
 
-<p>Der Treiber erkennt automatisch einfache Table-Reads und nutzt Paging für große Datenmengen.</p>
+<p>Der Treiber erkennt automatisch einfache Table-Reads und nutzt Paging (Chunking) für
+große Datenmengen — unbegrenzte Zeilenzahl.</p>
 
 <h3>Komplexe Queries (JOIN, Aggregation)</h3>
 
@@ -266,7 +292,33 @@ WHERE T.SPRAS = 'D'</pre>
 
 <h3>Tabellen-Discovery</h3>
 
-<p>In Excel/Power BI: Der Treiber unterstützt <code>SQLTables()</code> und <code>SQLColumns()</code> — Tabellen und Spalten werden automatisch angezeigt, wenn die Anwendung diese ODBC-Funktionen nutzt.</p>
+<p>Der Treiber unterstützt <code>SQLTables()</code> und <code>SQLColumns()</code> —
+Tabellen und Spalten werden automatisch angezeigt, wenn die Anwendung diese
+ODBC-Funktionen nutzt (z.B. QlikView Katalog).</p>
+
+<h3>Datumsformate</h3>
+
+<p>Datumswerte kommen im ODBC-Standardformat <code>YYYY-MM-DD</code>, Zeitwerte als <code>HH:MM:SS</code>.
+In QlikView mit der <code>Date#()</code>-Funktion interpretieren:</p>
+
+<pre>Date#(ERSDA, 'YYYY-MM-DD') as ERSDA</pre>
+
+<hr>
+
+<h2>Debug-Logging</h2>
+
+<p>Der Treiber unterstützt optionales Debug-Logging über den Registry-Wert <code>LogEnable</code>:</p>
+
+<pre>HKLM\SOFTWARE\ODBC\ODBC.INI\<DSN-Name>
+    LogEnable = 1   (0 = aus, Default; 1 = an)</pre>
+
+<p>Bei aktiviertem Logging schreibt der Treiber Debug-Informationen nach
+<code>C:\Temp\sap_odbc_debug.log</code>.</p>
+
+<div class="note">
+<code>LogEnable</code> wird beim Verbindungsaufbau gelesen und muss manuell in der
+Registry gesetzt werden. Das Installations-Skript setzt den Wert nicht.
+</div>
 
 <hr>
 
@@ -274,7 +326,8 @@ WHERE T.SPRAS = 'D'</pre>
 
 <table>
 <tr><th>Problem</th><th>Lösung</th></tr>
-<tr><td><code>Systemfehlercode 126</code> / Modul nicht gefunden</td><td>Abhängige DLL fehlt — <code>sapnwrfc.dll</code>, <code>libgcc_s_seh-1.dll</code> oder <code>libstdc++-6.dll</code> müssen im selben Verzeichnis liegen</td></tr>
+<tr><td><code>Systemfehlercode 126</code> / Modul nicht gefunden</td><td>Eine der 5 DLLs fehlt — alle DLLs müssen im selben Verzeichnis liegen</td></tr>
+<tr><td><code>sapnwrfc.dll not found</code></td><td>DLL aus NWRFC SDK (<code>nwrfcsdk\bin\</code>) kopieren — zusammen mit den 3 ICU-DLLs</td></tr>
 <tr><td><code>[IM002] Data source not found</code></td><td>DSN nicht korrekt registriert — <code>install_driver.ps1</code> erneut ausführen</td></tr>
 <tr><td><code>RFC connection failed</code></td><td>Host, Systemnummer oder Client falsch — Verbindungsoptionen prüfen</td></tr>
 <tr><td><code>Table XXX does not exist in DDIC</code></td><td>Tabelle existiert nicht im SAP-System — Tabellennamen prüfen</td></tr>
@@ -288,8 +341,8 @@ WHERE T.SPRAS = 'D'</pre>
 
 <ul>
 <li><strong>Read-only</strong> — keine INSERT/UPDATE/DELETE-Statements</li>
-<li><strong>ODBC 3.8</strong> — minimale API, kompatibel mit Excel, Power BI, Access, DBeaver</li>
 <li><strong>Keine Parameter-Bindings</strong> — SQL als direkter String</li>
+<li><strong>Excel</strong> — aktuell nicht kompatibel, QlikView/QlikSense funktionieren</li>
 </ul>
 
 </body>
