@@ -574,6 +574,28 @@ static void fillBoundColumns(SapStatement* stmt) {
             if (b.cbValueMax > 0 && b.rgbValue) {
                 strncpy_s((char*)b.rgbValue, b.cbValueMax, value.c_str(), b.cbValueMax - 1);
             }
+        } else if (b.fCType == SQL_C_WCHAR) {
+            // QlikView binds columns with SQL_C_WCHAR — convert ANSI to UTF-16
+            int maxChars = (int)(b.cbValueMax / sizeof(SQLWCHAR));
+            // Query required wide chars (includes null terminator)
+            int wideLen = MultiByteToWideChar(CP_ACP, 0, (LPCSTR)value.c_str(), -1, NULL, 0);
+            if (b.rgbValue && b.cbValueMax > 0) {
+                if (wideLen > maxChars) {
+                    // Truncation: copy what fits, null-terminate
+                    if (maxChars > 0) {
+                        MultiByteToWideChar(CP_ACP, 0, (LPCSTR)value.c_str(), -1, (LPWSTR)b.rgbValue, maxChars);
+                        ((SQLWCHAR*)b.rgbValue)[maxChars - 1] = 0;
+                    }
+                    if (b.pcbValue) *b.pcbValue = (SQLLEN)((wideLen - 1) * sizeof(SQLWCHAR));
+                } else {
+                    // Fits — copy whole string including null terminator
+                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)value.c_str(), -1, (LPWSTR)b.rgbValue, maxChars);
+                    if (b.pcbValue) *b.pcbValue = (SQLLEN)((wideLen - 1) * sizeof(SQLWCHAR));
+                }
+            } else {
+                // Caller just wants the length
+                if (b.pcbValue) *b.pcbValue = (SQLLEN)((wideLen - 1) * sizeof(SQLWCHAR));
+            }
         } else if (b.fCType == SQL_C_LONG || b.fCType == SQL_C_SLONG || b.fCType == SQL_C_ULONG) {
             long val = atol(value.c_str());
             if (b.rgbValue) *(long*)b.rgbValue = val;
