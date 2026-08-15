@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+@page {
+  size: A4;
+  margin: 2cm 2.5cm;
+  @bottom-center {
+    content: "SAP ODBC Driver v1.0.0 — Installationsanleitung";
+    font-size: 9pt;
+    color: #666;
+  }
+  @bottom-right {
+    content: "Seite " counter(page) " / " counter(pages);
+    font-size: 9pt;
+    color: #666;
+  }
+}
+body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #222;
+}
+h1 {
+  font-size: 22pt;
+  color: #0a5e8a;
+  border-bottom: 3px solid #0a5e8a;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+h2 {
+  font-size: 15pt;
+  color: #0a5e8a;
+  margin-top: 25px;
+  margin-bottom: 10px;
+  border-left: 4px solid #0a5e8a;
+  padding-left: 10px;
+}
+h3 {
+  font-size: 12pt;
+  color: #333;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+code, pre {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 9.5pt;
+}
+pre {
+  background: #f4f4f4;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 10px 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+code {
+  background: #f0f0f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 10pt;
+}
+th {
+  background: #0a5e8a;
+  color: white;
+  padding: 8px 10px;
+  text-align: left;
+}
+td {
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+}
+tr:nth-child(even) {
+  background: #f8f8f8;
+}
+.note {
+  background: #e7f4fa;
+  border-left: 4px solid #0a5e8a;
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 10pt;
+}
+.warning {
+  background: #fff4e6;
+  border-left: 4px solid #e8923c;
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 10pt;
+}
+.step {
+  background: #f0f7fb;
+  border: 1px solid #c5dce8;
+  border-radius: 6px;
+  padding: 15px 18px;
+  margin: 12px 0;
+}
+.step-number {
+  display: inline-block;
+  background: #0a5e8a;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 28px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+.title-block {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.title-block h1 {
+  border: none;
+  margin-bottom: 5px;
+}
+.title-block .subtitle {
+  font-size: 13pt;
+  color: #666;
+  margin-top: 0;
+}
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 25px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="title-block">
+  <h1>SAP ODBC Driver</h1>
+  <p class="subtitle">Installationsanleitung — Version 1.0.0</p>
+</div>
+
+<hr>
+
+<h2>Systemanforderungen</h2>
+
+<table>
+<tr><th>Komponente</th><th>Anforderung</th></tr>
+<tr><td>Betriebssystem</td><td>Windows 10/11 (x64) oder Windows Server 2016+ (x64)</td></tr>
+<tr><td>SAP NWRFC SDK</td><td>Version 7.50 (Windows x64) — benötigt als <code>sapnwrfc.dll</code></td></tr>
+<tr><td>ODBC-Anwendung</td><td>Excel, Power BI, Access, DBeaver oder jedes ODBC-kompatible Tool</td></tr>
+</table>
+
+<h2>Lieferumfang</h2>
+
+<table>
+<tr><th>Datei</th><th>Beschreibung</th></tr>
+<tr><td><code>sapodbcabap.dll</code></td><td>Der ODBC-Treiber (Windows x64, vorkompiliert)</td></tr>
+<tr><td><code>install_driver.ps1</code></td><td>PowerShell-Skript zur automatischen Installation</td></tr>
+<tr><td><code>abap-source.zip</code></td><td>SAP-Funktionsbausteine (für das SAP-System)</td></tr>
+</table>
+
+<hr>
+
+<h2>Installation — Schritt für Schritt</h2>
+
+<div class="step">
+<span class="step-number">1</span>
+<h3 style="margin-top:0; display:inline;">DLLs installieren</h3>
+
+<p>Erstelle ein Verzeichnis, z.B. <code>C:\Scripts\SAP_ODBC\</code> und kopiere folgende Dateien dorthin:</p>
+
+<ul>
+<li><strong><code>sapodbcabap.dll</code></strong> — aus diesem Release</li>
+<li><strong><code>sapnwrfc.dll</code></strong> — aus dem SAP NWRFC SDK 7.50</li>
+<li><strong><code>libgcc_s_seh-1.dll</code></strong> — aus diesem Release</li>
+<li><strong><code>libstdc++-6.dll</code></strong> — aus diesem Release</li>
+</ul>
+
+<div class="note">
+Die <code>sapnwrfc.dll</code> befindet sich im NWRFC SDK Verzeichnis unter <code>nwrfcsdk\bin\</code>.
+Falls das SDK noch nicht installiert ist, kann es von SAP heruntergeladen werden (SAP Note 2573790).
+</div>
+</div>
+
+<div class="step">
+<span class="step-number">2</span>
+<h3 style="margin-top:0; display:inline;">Treiber und Datenquelle automatisch registrieren</h3>
+
+<p>Öffne <strong>PowerShell als Administrator</strong> und führe das mitgelieferte Skript aus:</p>
+
+<pre>.\install_driver.ps1</pre>
+
+<p>Das Skript fragt interaktiv die Verbindungsparameter ab und registriert automatisch:</p>
+<ul>
+<li>den ODBC-Treiber in der Windows-Registry</li>
+<li>eine System-DSN mit allen Verbindungsoptionen</li>
+</ul>
+
+<p>Alternativ können alle Parameter direkt übergeben werden:</p>
+
+<pre>.\install_driver.ps1 -SapHost "sap-prod.firma.de" -SysNr "10" -Client "100" -SapUser "DEIN_USER" -Password "geheim"</pre>
+
+<div class="warning">
+Das Skript muss als Administrator ausgeführt werden.
+Rechtsklick auf PowerShell → „Als Administrator ausführen".
+</div>
+</div>
+
+<div class="step">
+<span class="step-number">3</span>
+<h3 style="margin-top:0; display:inline;">Verbindung testen</h3>
+
+<p>In <strong>Excel</strong>:</p>
+<ol>
+<li>Daten → Externe Daten abrufen → Aus anderen Quellen → ODBC-Datenquelle</li>
+<li>DSN <strong>„SAP_ODBC_ABAP"</strong> auswählen</li>
+<li>SQL eingeben: <code>SELECT * FROM MARA LIMIT 100</code></li>
+<li>Daten werden geladen</li>
+</ol>
+
+<p>In <strong>Power BI</strong>:</p>
+<ol>
+<li>Daten abrufen → Andere → ODBC</li>
+<li>DSN <strong>„SAP_ODBC_ABAP"</strong> auswählen</li>
+<li>Erweiterte Optionen: SQL eingeben</li>
+<li><code>SELECT * FROM MARA LIMIT 100</code></li>
+</ol>
+
+<p><strong>ODBC-Verbindungsstring</strong> (für SQLDriverConnect):</p>
+<pre>DSN=SAP_ODBC_ABAP;Host=sap-prod.firma.de;SysNr=10;Client=100;User=DEIN_USER;Password=********;Lang=EN</pre>
+</div>
+
+<hr>
+
+<h2>Verbindungsoptionen</h2>
+
+<table>
+<tr><th>Parameter</th><th>Beschreibung</th><th>Beispiel</th><th>Pflicht</th></tr>
+<tr><td><code>Host</code></td><td>SAP Applikationsserver (Hostname oder IP)</td><td>sap-prod.firma.de</td><td>Ja</td></tr>
+<tr><td><code>SysNr</code></td><td>Systemnummer</td><td>10</td><td>Ja</td></tr>
+<tr><td><code>Client</code></td><td>SAP-Mandant</td><td>100</td><td>Ja</td></tr>
+<tr><td><code>User</code></td><td>SAP-Benutzer</td><td>DEIN_USER</td><td>Ja</td></tr>
+<tr><td><code>Password</code></td><td>Passwort</td><td>********</td><td>Ja</td></tr>
+<tr><td><code>Lang</code></td><td>Anmeldesprache</td><td>EN</td><td>Nein (Default: DE)</td></tr>
+<tr><td><code>MaxRows</code></td><td>Maximale Zeilen pro Query</td><td>50000</td><td>Nein (Default: 30000)</td></tr>
+</table>
+
+<hr>
+
+<h2>Nutzung</h2>
+
+<h3>Einfache Table-Reads</h3>
+
+<pre>SELECT * FROM MARA LIMIT 100
+SELECT MATNR, MTART, ERSDA FROM MARA WHERE MTART = 'FERT' ORDER BY MATNR</pre>
+
+<p>Der Treiber erkennt automatisch einfache Table-Reads und nutzt Paging für große Datenmengen.</p>
+
+<h3>Komplexe Queries (JOIN, Aggregation)</h3>
+
+<pre>SELECT M.MATNR, M.MTART, T.MAKTX
+FROM MARA M INNER JOIN MAKT T ON M.MATNR = T.MATNR
+WHERE T.SPRAS = 'D'</pre>
+
+<h3>Tabellen-Discovery</h3>
+
+<p>In Excel/Power BI: Der Treiber unterstützt <code>SQLTables()</code> und <code>SQLColumns()</code> — Tabellen und Spalten werden automatisch angezeigt, wenn die Anwendung diese ODBC-Funktionen nutzt.</p>
+
+<hr>
+
+<h2>Fehlerbehebung</h2>
+
+<table>
+<tr><th>Problem</th><th>Lösung</th></tr>
+<tr><td><code>Systemfehlercode 126</code> / Modul nicht gefunden</td><td>Abhängige DLL fehlt — <code>sapnwrfc.dll</code>, <code>libgcc_s_seh-1.dll</code> oder <code>libstdc++-6.dll</code> müssen im selben Verzeichnis liegen</td></tr>
+<tr><td><code>[IM002] Data source not found</code></td><td>DSN nicht korrekt registriert — <code>install_driver.ps1</code> erneut ausführen</td></tr>
+<tr><td><code>RFC connection failed</code></td><td>Host, Systemnummer oder Client falsch — Verbindungsoptionen prüfen</td></tr>
+<tr><td><code>Table XXX does not exist in DDIC</code></td><td>Tabelle existiert nicht im SAP-System — Tabellennamen prüfen</td></tr>
+<tr><td><code>Invalid table name</code></td><td>Tabellenname enthält ungültige Zeichen — nur A-Z, 0-9, _ und / erlaubt</td></tr>
+<tr><td><code>SAP error: ...</code></td><td>Fehler aus SAP — SQL-Syntax oder Berechtigungen prüfen</td></tr>
+</table>
+
+<hr>
+
+<h2>Einschränkungen</h2>
+
+<ul>
+<li><strong>Read-only</strong> — keine INSERT/UPDATE/DELETE-Statements</li>
+<li><strong>ODBC 3.8</strong> — minimale API, kompatibel mit Excel, Power BI, Access, DBeaver</li>
+<li><strong>Keine Parameter-Bindings</strong> — SQL als direkter String</li>
+</ul>
+
+</body>
+</html>

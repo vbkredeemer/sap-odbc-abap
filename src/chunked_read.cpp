@@ -37,6 +37,35 @@ static bool containsKeyword(const std::string& sql_upper, const std::string& key
     return false;
 }
 
+// Normalize a field list: remove spaces around commas, trim each field, uppercase
+// e.g. "MATNR, ERNAM" → "MATNR,ERNAM", "matnr" → "MATNR"
+static std::string normalizeFields(const std::string& fields) {
+    std::string result;
+    std::string current;
+    for (size_t i = 0; i < fields.length(); i++) {
+        if (fields[i] == ',') {
+            // Trim current field
+            std::string trimmed = trim(current);
+            if (!trimmed.empty()) {
+                std::string upper = toUpper(trimmed);
+                if (!result.empty()) result += ",";
+                result += upper;
+            }
+            current.clear();
+        } else {
+            current += fields[i];
+        }
+    }
+    // Last field
+    std::string trimmed = trim(current);
+    if (!trimmed.empty()) {
+        std::string upper = toUpper(trimmed);
+        if (!result.empty()) result += ",";
+        result += upper;
+    }
+    return result;
+}
+
 bool isSimpleTableRead(const std::string& sql, std::string& table, 
                        std::string& whereClause, std::string& fields) {
     std::string sql_upper = toUpper(sql);
@@ -60,7 +89,7 @@ bool isSimpleTableRead(const std::string& sql, std::string& table,
     if (containsKeyword(sql_upper, "MIN")) return false;
     if (containsKeyword(sql_upper, "MAX")) return false;
     if (containsKeyword(sql_upper, "AVG")) return false;
-    if (containsKeyword(sql_upper, "AS ")) return false;
+    if (containsKeyword(sql_upper, "AS")) return false;
     
     // Check for subquery (parentheses in FROM clause)
     size_t from_pos = sql_upper.find(" FROM ");
@@ -69,8 +98,10 @@ bool isSimpleTableRead(const std::string& sql, std::string& table,
     // Check for parentheses (subqueries, function calls)
     if (sql.find('(') != std::string::npos) return false;
     
-    // Extract fields (between SELECT and FROM)
-    fields = trim(sql_trim.substr(6, from_pos - 6));
+    // Extract fields (between SELECT and FROM), then normalize
+    // Normalize: remove spaces around commas, uppercase each field name
+    // e.g. "MATNR, ERNAM" → "MATNR,ERNAM" so ABAP SPLIT produces clean field names
+    fields = normalizeFields(trim(sql_trim.substr(6, from_pos - 6)));
     
     // Find WHERE or end of string
     size_t where_pos = sql_upper.find(" WHERE ");
@@ -133,7 +164,7 @@ bool rfcReadTableChunked(SapConnection* conn,
                          std::vector<std::string>& rows,
                          int& total_row_count,
                          std::string& error) {
-    if (!conn->connected) {
+    if (!conn || !conn->connected || conn->rfc_conn == NULL) {
         error = "Not connected";
         return false;
     }
@@ -147,21 +178,25 @@ bool rfcReadTableChunked(SapConnection* conn,
     bool first_chunk = true;
     int max_iterations = 500; // safety limit (500 * 10000 = 5M rows)
 
+    // I-1 fix: get function description ONCE before the loop (was called inside loop)
+    RFC_ERROR_INFO error_info;
+
+    RFC_FUNCTION_DESC_HANDLE func_desc = RfcGetFunctionDesc(conn->rfc_conn, TO_SAP_UC("Z_READ_TABLE"), &error_info);
+    if (func_desc == NULL) {
+        error = "Cannot get function desc Z_READ_TABLE: " + fromSapUc(error_info.message, 256);
+        return false;
+    }
+
     while (has_more && max_iterations > 0) {
         max_iterations--;
 
-        RFC_ERROR_INFO error_info;
-
-        // Get function description
-        RFC_FUNCTION_DESC_HANDLE func_desc = RfcGetFunctionDesc(conn->rfc_conn, TO_SAP_UC("Z_READ_TABLE"), &error_info);
-        if (func_desc == NULL) {
-            error = "Cannot get function desc Z_READ_TABLE: " + fromSapUc(error_info.message, 256);
-            return false;
-        }
+        // I-1 fix: RfcCreateFunction needs to be called per iteration (fresh handle),
+        // but the desc handle is reused. Desc is freed after the loop (C-1 fix).
 
         RFC_FUNCTION_HANDLE func = RfcCreateFunction(func_desc, &error_info);
         if (func == NULL) {
             error = "Cannot create RFC function Z_READ_TABLE: " + fromSapUc(error_info.message, 256);
+            RfcDestroyFunctionDesc(func_desc, NULL);
             return false;
         }
 
@@ -170,62 +205,64 @@ bool rfcReadTableChunked(SapConnection* conn,
         // Set IV_TABLE
         std::wstring wtable = toSapUc(table);
         rc = RfcSetString(func, TO_SAP_UC("IV_TABLE"), wtable.c_str(), (unsigned)wtable.length(), &error_info);
-        if (rc != RFC_OK) { error = "Cannot set IV_TABLE"; RfcDestroyFunction(func, NULL); return false; }
+        if (rc != RFC_OK) { error = "Cannot set IV_TABLE"; RfcDestroyFunction(func, NULL); RfcDestroyFunctionDesc(func_desc, NULL); return false; }
 
         // Set IV_WHERE (optional)
         if (!whereClause.empty()) {
             std::wstring wwhere = toSapUc(whereClause);
             rc = RfcSetString(func, TO_SAP_UC("IV_WHERE"), wwhere.c_str(), (unsigned)wwhere.length(), &error_info);
-            if (rc != RFC_OK) { error = "Cannot set IV_WHERE"; RfcDestroyFunction(func, NULL); return false; }
+            if (rc != RFC_OK) { error = "Cannot set IV_WHERE"; RfcDestroyFunction(func, NULL); RfcDestroyFunctionDesc(func_desc, NULL); return false; }
         }
 
         // Set IV_FIELDS (optional, default '*')
         if (!fields.empty()) {
             std::wstring wfields = toSapUc(fields);
             rc = RfcSetString(func, TO_SAP_UC("IV_FIELDS"), wfields.c_str(), (unsigned)wfields.length(), &error_info);
-            if (rc != RFC_OK) { error = "Cannot set IV_FIELDS"; RfcDestroyFunction(func, NULL); return false; }
+            if (rc != RFC_OK) { error = "Cannot set IV_FIELDS"; RfcDestroyFunction(func, NULL); RfcDestroyFunctionDesc(func_desc, NULL); return false; }
         }
 
         // Set IV_ORDERBY (optional)
         if (!orderBy.empty()) {
             std::wstring worder = toSapUc(orderBy);
             rc = RfcSetString(func, TO_SAP_UC("IV_ORDERBY"), worder.c_str(), (unsigned)worder.length(), &error_info);
-            if (rc != RFC_OK) { error = "Cannot set IV_ORDERBY"; RfcDestroyFunction(func, NULL); return false; }
+            if (rc != RFC_OK) { error = "Cannot set IV_ORDERBY"; RfcDestroyFunction(func, NULL); RfcDestroyFunctionDesc(func_desc, NULL); return false; }
         }
 
         // Set IV_ROWSKIPS
         rc = RfcSetInt(func, TO_SAP_UC("IV_ROWSKIPS"), skip, &error_info);
-        if (rc != RFC_OK) { error = "Cannot set IV_ROWSKIPS"; RfcDestroyFunction(func, NULL); return false; }
+        if (rc != RFC_OK) { error = "Cannot set IV_ROWSKIPS"; RfcDestroyFunction(func, NULL); RfcDestroyFunctionDesc(func_desc, NULL); return false; }
 
         // Set IV_ROWCOUNT
         rc = RfcSetInt(func, TO_SAP_UC("IV_ROWCOUNT"), chunkSize, &error_info);
-        if (rc != RFC_OK) { error = "Cannot set IV_ROWCOUNT"; RfcDestroyFunction(func, NULL); return false; }
+        if (rc != RFC_OK) { error = "Cannot set IV_ROWCOUNT"; RfcDestroyFunction(func, NULL); RfcDestroyFunctionDesc(func_desc, NULL); return false; }
 
         // Execute
         rc = RfcInvoke(conn->rfc_conn, func, &error_info);
         if (rc != RFC_OK) {
             error = "RFC invoke Z_READ_TABLE failed: " + fromSapUc(error_info.message, 256);
             RfcDestroyFunction(func, NULL);
+            RfcDestroyFunctionDesc(func_desc, NULL);
             return false;
         }
 
         // Check for errors
-        SAP_UC ev_error[4096];
+        std::vector<SAP_UC> ev_error(4096);
         unsigned ev_error_len = 0;
-        rc = RfcGetString(func, TO_SAP_UC("EV_ERROR"), ev_error, 4096, &ev_error_len, &error_info);
+        rc = RfcGetString(func, TO_SAP_UC("EV_ERROR"), ev_error.data(), 4096, &ev_error_len, &error_info);
         if (rc == RFC_OK && ev_error_len > 0) {
-            std::string err_str = fromSapUc(ev_error, ev_error_len);
+            std::string err_str = fromSapUc(ev_error.data(), ev_error_len);
             if (!err_str.empty()) {
                 error = "SAP error: " + err_str;
                 RfcDestroyFunction(func, NULL);
+                RfcDestroyFunctionDesc(func_desc, NULL);
                 return false;
             }
         }
 
         // Check has_more
-        SAP_UC has_more_buf[2];
+        SAP_UC has_more_buf[8];
         unsigned has_more_len = 0;
-        rc = RfcGetString(func, TO_SAP_UC("EV_HAS_MORE"), has_more_buf, 2, &has_more_len, &error_info);
+        rc = RfcGetString(func, TO_SAP_UC("EV_HAS_MORE"), has_more_buf, 8, &has_more_len, &error_info);
         if (rc == RFC_OK && has_more_len > 0 && has_more_buf[0] == 'X') {
             has_more = true;
         } else {
@@ -258,10 +295,14 @@ bool rfcReadTableChunked(SapConnection* conn,
 
                     RfcGetString(row, TO_SAP_UC("FIELDNAME"), buf, 256, &len, &error_info);
                     std::string fname = fromSapUc(buf, len);
+                    // Trim trailing spaces (FIELDNAME is CHAR 30, blank-padded)
+                    while (!fname.empty() && fname.back() == ' ') fname.pop_back();
                     strncpy_s(col.fieldname, sizeof(col.fieldname), fname.c_str(), sizeof(col.fieldname) - 1);
 
                     RfcGetString(row, TO_SAP_UC("DATATYPE"), buf, 256, &len, &error_info);
                     std::string dtype = fromSapUc(buf, len);
+                    // Trim trailing spaces
+                    while (!dtype.empty() && dtype.back() == ' ') dtype.pop_back();
                     strncpy_s(col.datatype, sizeof(col.datatype), dtype.c_str(), sizeof(col.datatype) - 1);
 
                     RfcGetInt(row, TO_SAP_UC("LENGTH"), &col.length, &error_info);
@@ -313,8 +354,15 @@ bool rfcReadTableChunked(SapConnection* conn,
 
                 SAP_UC rowdata[ROW_DATA_SIZE + 1];
                 unsigned rowdata_len = 0;
-                RfcGetString(row, TO_SAP_UC("ROWDATA"), rowdata, ROW_DATA_SIZE, &rowdata_len, &error_info);
-                rows.push_back(fromSapUc(rowdata, rowdata_len));
+                // Pass bufferLength = ROW_DATA_SIZE + 1 to accommodate full CHAR(10000) + null terminator
+                rc = RfcGetString(row, TO_SAP_UC("ROWDATA"), rowdata, ROW_DATA_SIZE + 1, &rowdata_len, &error_info);
+                // Trim trailing spaces (CHAR 10000 fields are blank-padded)
+                std::string rowStr = fromSapUc(rowdata, rowdata_len);
+                // Remove trailing whitespace (spaces from CHAR field padding)
+                while (!rowStr.empty() && (rowStr.back() == ' ' || rowStr.back() == '\t' || rowStr.back() == '\r' || rowStr.back() == '\n')) {
+                    rowStr.pop_back();
+                }
+                rows.push_back(rowStr);
             }
         }
 
@@ -324,11 +372,19 @@ bool rfcReadTableChunked(SapConnection* conn,
         skip += chunkSize;
         total_row_count += row_count;
 
+        // I-2 fix: respect max_rows limit
+        if (conn->params.max_rows > 0 && total_row_count >= conn->params.max_rows) {
+            has_more = false;
+        }
+
         // If we got fewer rows than chunkSize, we're done
         if (row_count < chunkSize) {
             has_more = false;
         }
     }
+
+    // C-1 fix: free the function description handle now that the loop is done
+    RfcDestroyFunctionDesc(func_desc, NULL);
 
     return true;
 }

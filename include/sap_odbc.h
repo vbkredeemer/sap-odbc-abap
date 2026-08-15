@@ -39,6 +39,7 @@ struct ConnectionParams {
     std::string user;
     std::string password;
     std::string lang;
+    std::string dsn_name;  // DSN name (set by SQLConnect for SQLGetInfo)
     int max_rows;
 };
 
@@ -59,6 +60,15 @@ struct SapConnection {
     SapErrorInfo last_error;
 };
 
+// Column binding info (for SQLBindCol)
+struct ColBinding {
+    SQLUSMALLINT col;       // 1-based column number
+    SQLSMALLINT fCType;     // C type (SQL_C_CHAR, SQL_C_LONG, etc.)
+    SQLPOINTER rgbValue;    // pointer to output buffer
+    SQLLEN cbValueMax;      // max buffer size
+    SQLLEN* pcbValue;       // pointer to length/indicator
+};
+
 // Statement handle
 struct SapStatement {
     SapConnection* connection;
@@ -76,6 +86,8 @@ struct SapStatement {
     std::vector<ColumnMeta> meta_columns;
     // Metadata result rows (pre-built, not pipe-delimited)
     std::vector<std::vector<std::string>> meta_rows;
+    // Column bindings (for SQLBindCol)
+    std::vector<ColBinding> bindings;
 };
 
 // ODBC handle types

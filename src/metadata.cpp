@@ -1,5 +1,26 @@
 #include "sap_odbc.h"
 #include <algorithm>
+#include <cctype>
+
+// Helper: escape single quotes in SQL string literals to prevent SQL injection
+static std::string escapeSql(const std::string& s) {
+    std::string r;
+    r.reserve(s.size() + 4);
+    for (char c : s) {
+        if (c == '\'') r += "''";
+        else r += c;
+    }
+    return r;
+}
+
+// Helper: convert connection language code (e.g. "DE", "EN") to SAP single-char code (e.g. "D", "E")
+static std::string sapLangCode(const std::string& lang) {
+    if (!lang.empty()) {
+        // I-9 fix: uppercase the first character so lowercase "de" maps to "D"
+        return std::string(1, (char)toupper((unsigned char)lang[0]));
+    }
+    return "E"; // default English
+}
 
 // Helper: build a ColumnMeta for metadata result sets
 static ColumnMeta makeMetaCol(const char* name, SQLSMALLINT sql_type, int length) {
@@ -28,8 +49,14 @@ bool metaGetTables(SapConnection* conn, const std::string& tablePattern,
                    std::vector<std::vector<std::string>>& rows,
                    std::string& error) {
 
+    if (!conn || !conn->connected) {
+        error = "Not connected";
+        return false;
+    }
+
     // Build SQL — same as JDBC driver
-    std::string sql = "select TABNAME, DDTEXT from DD02V where DDLANGUAGE = 'D' and TABCLASS = 'TRANSP' and (CONTFLAG = 'A' or CONTFLAG = 'C')";
+    std::string sapLang = sapLangCode(conn->params.lang);
+    std::string sql = "select TABNAME, DDTEXT from DD02V where DDLANGUAGE = '" + sapLang + "' and TABCLASS = 'TRANSP' and (CONTFLAG = 'A' or CONTFLAG = 'C')";
 
     // Add table name filter if specific pattern
     std::string pat = patternToSql(tablePattern);
@@ -37,7 +64,7 @@ bool metaGetTables(SapConnection* conn, const std::string& tablePattern,
         // Replace * with % for SQL LIKE
         std::string likepat = pat;
         std::replace(likepat.begin(), likepat.end(), '*', '%');
-        sql += " and TABNAME like '" + likepat + "'";
+        sql += " and TABNAME like '" + escapeSql(likepat) + "'";
     }
 
     // Execute via RFC
@@ -92,8 +119,14 @@ bool metaGetColumns(SapConnection* conn, const std::string& tableName,
                     std::vector<std::vector<std::string>>& rows,
                     std::string& error) {
 
+    if (!conn || !conn->connected) {
+        error = "Not connected";
+        return false;
+    }
+
     // Build SQL — same as JDBC driver
-    std::string sql = "select TABNAME, FIELDNAME, INTTYPE, DOMNAME, INTLEN, POSITION, DDTEXT, NOTNULL from DD03VT where DDLANGUAGE = 'D' and TABNAME = '" + tableName + "'";
+    std::string sapLang = sapLangCode(conn->params.lang);
+    std::string sql = "select TABNAME, FIELDNAME, INTTYPE, DOMNAME, INTLEN, POSITION, DDTEXT, NOTNULL from DD03VT where DDLANGUAGE = '" + sapLang + "' and TABNAME = '" + escapeSql(tableName) + "'";
 
     // Execute via RFC
     std::vector<ColumnMeta> rawcols;

@@ -4,26 +4,35 @@
 // Convert std::string (UTF-8) to SAP_UC (wchar_t on Windows) — helper
 // SAP_UC is wchar_t on Windows (UTF-16), char16_t on some platforms
 std::wstring toSapUc(const std::string& s) {
-    std::wstring ws;
-    for (size_t i = 0; i < s.length(); i++) ws += (wchar_t)(unsigned char)s[i];
+    if (s.empty()) return std::wstring();
+    // Convert UTF-8 → UTF-16 using MultiByteToWideChar
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.length(), NULL, 0);
+    if (wlen <= 0) return std::wstring();
+    std::wstring ws(wlen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.length(), &ws[0], wlen);
     return ws;
 }
 
-// Convert SAP_UC to std::string — helper
+// Convert SAP_UC to std::string (UTF-8) — helper
 std::string fromSapUc(const SAP_UC* src, int len) {
     if (!src || len <= 0) return "";
-    std::string s;
+    // Find actual length (stop at null terminator if within len)
+    int actualLen = 0;
     for (int i = 0; i < len; i++) {
         if (src[i] == 0) break;
-        s += (char)src[i];
+        actualLen++;
     }
+    if (actualLen == 0) return "";
+    // Convert UTF-16 → UTF-8 using WideCharToMultiByte
+    int utf8Len = WideCharToMultiByte(CP_UTF8, 0, src, actualLen, NULL, 0, NULL, NULL);
+    if (utf8Len <= 0) return "";
+    std::string s(utf8Len, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, src, actualLen, &s[0], utf8Len, NULL, NULL);
     return s;
 }
 
-// Convert C string literal to SAP_UC — use L"" prefix
-#define TO_SAP_UC(str) ((const SAP_UC*)(L##str))
-
 bool rfcConnect(SapConnection* conn) {
+    if (!conn) return false;
     RFC_ERROR_INFO error_info;
 
     std::wstring host = toSapUc(conn->params.host);
@@ -52,6 +61,7 @@ bool rfcConnect(SapConnection* conn) {
 }
 
 void rfcDisconnect(SapConnection* conn) {
+    if (!conn) return;
     if (conn->connected && conn->rfc_conn != NULL) {
         RfcCloseConnection(conn->rfc_conn, NULL);
         conn->rfc_conn = NULL;
@@ -64,7 +74,11 @@ bool rfcExecuteSql(SapConnection* conn, const char* sql,
                    std::vector<std::string>& rows,
                    int& row_count,
                    std::string& error) {
-    if (!conn->connected) {
+    if (!conn) {
+        error = "Connection handle is NULL";
+        return false;
+    }
+    if (!conn->connected || conn->rfc_conn == NULL) {
         error = "Not connected";
         return false;
     }
@@ -81,8 +95,12 @@ bool rfcExecuteSql(SapConnection* conn, const char* sql,
     RFC_FUNCTION_HANDLE func = RfcCreateFunction(func_desc, &error_info);
     if (func == NULL) {
         error = "Cannot create RFC function Z_EXECUTE_SQL: " + fromSapUc(error_info.message, 256);
+        RfcDestroyFunctionDesc(func_desc, NULL);
         return false;
     }
+
+    // C-1 fix: func_desc is no longer needed once the function handle is created
+    RfcDestroyFunctionDesc(func_desc, NULL);
 
     // Set IV_SQL
     std::wstring wsql = toSapUc(std::string(sql));
@@ -123,11 +141,11 @@ bool rfcExecuteSql(SapConnection* conn, const char* sql,
     row_count = ev_row_count;
 
     // Check for errors
-    SAP_UC ev_error[4096];
+    std::vector<SAP_UC> ev_error(4096);
     unsigned ev_error_len = 0;
-    rc = RfcGetString(func, TO_SAP_UC("EV_ERROR"), ev_error, 4096, &ev_error_len, &error_info);
+    rc = RfcGetString(func, TO_SAP_UC("EV_ERROR"), ev_error.data(), 4096, &ev_error_len, &error_info);
     if (rc == RFC_OK && ev_error_len > 0) {
-        std::string err_str = fromSapUc(ev_error, ev_error_len);
+        std::string err_str = fromSapUc(ev_error.data(), ev_error_len);
         if (!err_str.empty()) {
             error = "SAP error: " + err_str;
             RfcDestroyFunction(func, NULL);
@@ -161,10 +179,14 @@ bool rfcExecuteSql(SapConnection* conn, const char* sql,
 
         RfcGetString(row, TO_SAP_UC("FIELDNAME"), buf, 256, &len, &error_info);
         std::string fname = fromSapUc(buf, len);
+        // Trim trailing spaces (FIELDNAME is CHAR 30, blank-padded)
+        while (!fname.empty() && fname.back() == ' ') fname.pop_back();
         strncpy_s(col.fieldname, sizeof(col.fieldname), fname.c_str(), sizeof(col.fieldname) - 1);
 
         RfcGetString(row, TO_SAP_UC("DATATYPE"), buf, 256, &len, &error_info);
         std::string dtype = fromSapUc(buf, len);
+        // Trim trailing spaces
+        while (!dtype.empty() && dtype.back() == ' ') dtype.pop_back();
         strncpy_s(col.datatype, sizeof(col.datatype), dtype.c_str(), sizeof(col.datatype) - 1);
 
         RfcGetInt(row, TO_SAP_UC("LENGTH"), &col.length, &error_info);
@@ -220,8 +242,14 @@ bool rfcExecuteSql(SapConnection* conn, const char* sql,
 
         SAP_UC rowdata[ROW_DATA_SIZE + 1];
         unsigned rowdata_len = 0;
-        RfcGetString(row, TO_SAP_UC("ROWDATA"), rowdata, ROW_DATA_SIZE, &rowdata_len, &error_info);
-        rows.push_back(fromSapUc(rowdata, rowdata_len));
+        // Pass bufferLength = ROW_DATA_SIZE + 1 to accommodate full CHAR(10000) + null terminator
+        RfcGetString(row, TO_SAP_UC("ROWDATA"), rowdata, ROW_DATA_SIZE + 1, &rowdata_len, &error_info);
+        std::string rowStr = fromSapUc(rowdata, rowdata_len);
+        // Remove trailing whitespace (spaces from CHAR field padding)
+        while (!rowStr.empty() && (rowStr.back() == ' ' || rowStr.back() == '\t' || rowStr.back() == '\r' || rowStr.back() == '\n')) {
+            rowStr.pop_back();
+        }
+        rows.push_back(rowStr);
     }
 
     RfcDestroyFunction(func, NULL);

@@ -1,37 +1,119 @@
 LIBRARY sapodbcabap
 EXPORTS
+    ConfigDSN
     SQLAllocHandle
     SQLFreeHandle
     SQLDriverConnect
+    SQLDriverConnectA = SQLDriverConnect
+    SQLDriverConnectW = SQLDriverConnect
     SQLConnect
+    SQLConnectA = SQLConnect
+    SQLConnectW = SQLConnect
     SQLDisconnect
+    SQLDisconnectA = SQLDisconnect
+    SQLDisconnectW = SQLDisconnect
     SQLExecDirect
+    SQLExecDirectA = SQLExecDirect
+    SQLExecDirectW = SQLExecDirect
     SQLPrepare
+    SQLPrepareA = SQLPrepare
+    SQLPrepareW = SQLPrepare
     SQLExecute
+    SQLExecuteA = SQLExecute
+    SQLExecuteW = SQLExecute
     SQLFetch
+    SQLFetchA = SQLFetch
+    SQLFetchW = SQLFetch
     SQLGetData
+    SQLGetDataA = SQLGetData
+    SQLGetDataW = SQLGetData
     SQLNumResultCols
+    SQLNumResultColsA = SQLNumResultCols
+    SQLNumResultColsW = SQLNumResultCols
     SQLDescribeCol
+    SQLDescribeColA = SQLDescribeCol
+    SQLDescribeColW = SQLDescribeCol
     SQLColAttribute
+    SQLColAttributeA = SQLColAttribute
+    SQLColAttributeW = SQLColAttribute
     SQLRowCount
+    SQLRowCountA = SQLRowCount
+    SQLRowCountW = SQLRowCount
     SQLMoreResults
+    SQLMoreResultsA = SQLMoreResults
+    SQLMoreResultsW = SQLMoreResults
     SQLCancel
+    SQLCancelA = SQLCancel
+    SQLCancelW = SQLCancel
     SQLCloseCursor
+    SQLCloseCursorA = SQLCloseCursor
+    SQLCloseCursorW = SQLCloseCursor
     SQLBindParameter
+    SQLBindParameterA = SQLBindParameter
+    SQLBindParameterW = SQLBindParameter
     SQLBindCol
+    SQLBindColA = SQLBindCol
+    SQLBindColW = SQLBindCol
     SQLEndTran
+    SQLEndTranA = SQLEndTran
+    SQLEndTranW = SQLEndTran
     SQLSetConnectAttr
+    SQLSetConnectAttrA = SQLSetConnectAttr
+    SQLSetConnectAttrW = SQLSetConnectAttr
     SQLSetStmtAttr
+    SQLSetStmtAttrA = SQLSetStmtAttr
+    SQLSetStmtAttrW = SQLSetStmtAttr
     SQLSetEnvAttr
+    SQLSetEnvAttrA = SQLSetEnvAttr
+    SQLSetEnvAttrW = SQLSetEnvAttr
     SQLGetInfo
+    SQLGetInfoA = SQLGetInfo
+    SQLGetInfoW = SQLGetInfo
     SQLGetFunctions
+    SQLGetFunctionsA = SQLGetFunctions
+    SQLGetFunctionsW = SQLGetFunctions
     SQLGetTypeInfo
+    SQLGetTypeInfoA = SQLGetTypeInfo
+    SQLGetTypeInfoW = SQLGetTypeInfo
     SQLTables
+    SQLTablesA = SQLTables
+    SQLTablesW = SQLTables
     SQLColumns
+    SQLColumnsA = SQLColumns
+    SQLColumnsW = SQLColumns
     SQLError
+    SQLErrorA = SQLError
+    SQLErrorW = SQLError
     SQLGetDiagRec
+    SQLGetDiagRecA = SQLGetDiagRec
+    SQLGetDiagRecW = SQLGetDiagRec
     SQLGetDiagField
+    SQLGetDiagFieldA = SQLGetDiagField
+    SQLGetDiagFieldW = SQLGetDiagField
     SQLSetPos
+    SQLSetPosA = SQLSetPos
+    SQLSetPosW = SQLSetPos
     SQLBulkOperations
+    SQLBulkOperationsA = SQLBulkOperations
+    SQLBulkOperationsW = SQLBulkOperations
     SQLGetConnectAttr
+    SQLGetConnectAttrA = SQLGetConnectAttr
+    SQLGetConnectAttrW = SQLGetConnectAttr
+    SQLGetStmtAttr
+    SQLGetStmtAttrA = SQLGetStmtAttr
+    SQLGetStmtAttrW = SQLGetStmtAttr
+    SQLGetEnvAttr
+    SQLGetEnvAttrA = SQLGetEnvAttr
+    SQLGetEnvAttrW = SQLGetEnvAttr
+    SQLBrowseConnect
+    SQLBrowseConnectA = SQLBrowseConnect
+    SQLBrowseConnectW = SQLBrowseConnect
+    SQLGetCursorName
+    SQLGetCursorNameA = SQLGetCursorName
+    SQLGetCursorNameW = SQLGetCursorName
+    SQLSetCursorName
+    SQLSetCursorNameA = SQLSetCursorName
+    SQLSetCursorNameW = SQLSetCursorName
     SQLNativeSql
+    SQLNativeSqlA = SQLNativeSql
+    SQLNativeSqlW = SQLNativeSql

@@ -1,0 +1,36 @@
+#include <windows.h>
+#include "resource.h"
+
+DLG_CONFIG DIALOGEX 0, 0, 480, 350
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "SAP ODBC Configuration"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    LTEXT           "DSN:",          -1,             12,  12, 70, 12
+    EDITTEXT                        IDC_DSN_EDIT,       87,  10, 380, 14, ES_AUTOHSCROLL
+
+    LTEXT           "Host:",         -1,             12,  32, 70, 12
+    EDITTEXT                        IDC_HOST_EDIT,      87,  30, 380, 14, ES_AUTOHSCROLL
+
+    LTEXT           "SysNr:",        -1,             12,  52, 70, 12
+    EDITTEXT                        IDC_SYSNR_EDIT,     87,  50, 380, 14, ES_AUTOHSCROLL
+
+    LTEXT           "Client:",       -1,             12,  72, 70, 12
+    EDITTEXT                        IDC_CLIENT_EDIT,    87,  70, 380, 14, ES_AUTOHSCROLL
+
+    LTEXT           "User:",         -1,             12,  92, 70, 12
+    EDITTEXT                        IDC_USER_EDIT,      87,  90, 380, 14, ES_AUTOHSCROLL
+
+    LTEXT           "Password:",     -1,             12, 112, 70, 12
+    EDITTEXT                        IDC_PASSWORD_EDIT,  87, 110, 380, 14, ES_AUTOHSCROLL | ES_PASSWORD
+
+    LTEXT           "Lang:",         -1,             12, 132, 70, 12
+    EDITTEXT                        IDC_LANG_EDIT,      87, 130, 380, 14, ES_AUTOHSCROLL
+
+    LTEXT           "MaxRows:",      -1,             12, 152, 70, 12
+    EDITTEXT                        IDC_MAXROWS_EDIT,   87, 150, 380, 14, ES_AUTOHSCROLL
+
+    PUSHBUTTON      "Test Connection", IDC_TEST_BTN, 12, 190, 110, 26
+    DEFPUSHBUTTON   "OK",           IDOK,             200, 190, 70, 26
+    PUSHBUTTON      "Cancel",       IDCANCEL,         290, 190, 70, 26
+END

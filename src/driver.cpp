@@ -22,9 +22,63 @@ struct LockGuard {
 
 // ============================================================
 // Debug Logging — writes to C:\Scripts\SAP_ODBC\sap_odbc_debug.log
+// Logging is OFF by default. Set registry DWORD "LogEnable=1"
+// under HKLM\SOFTWARE\ODBC\ODBC.INI\<DSN> to enable.
+// Only errors, SQLExecDirect, SQLDriverConnect, and DllMain are logged.
 // ============================================================
 
+// Cached logging state: 0 = not checked, 1 = enabled, -1 = disabled
+static int g_logEnabled = 0;       // 0 = unknown, 1 = on, -1 = off
+static std::string g_logDsn;       // DSN name for registry lookups
+static CRITICAL_SECTION g_logLock; // protects g_logEnabled / g_logDsn
+
+static bool isLogEnabled() {
+    // Fast path: already determined
+    if (g_logEnabled != 0) return g_logEnabled == 1;
+
+    // Slow path: read registry
+    LockGuard guard(&g_logLock);
+    // Double-check after acquiring lock
+    if (g_logEnabled != 0) return g_logEnabled == 1;
+
+    if (g_logDsn.empty()) {
+        g_logEnabled = -1;
+        return false;
+    }
+
+    std::string regPath = "SOFTWARE\\ODBC\\ODBC.INI\\" + g_logDsn;
+    HKEY hKey;
+    LONG rc = RegOpenKeyExA(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ, &hKey);
+    if (rc != ERROR_SUCCESS) {
+        g_logEnabled = -1;
+        return false;
+    }
+
+    DWORD val = 0;
+    DWORD size = sizeof(val);
+    DWORD type = 0;
+    rc = RegQueryValueExA(hKey, "LogEnable", NULL, &type, (LPBYTE)&val, &size);
+    RegCloseKey(hKey);
+
+    if (rc == ERROR_SUCCESS && (type == REG_DWORD || type == REG_BINARY) && val == 1) {
+        g_logEnabled = 1;
+        return true;
+    }
+    g_logEnabled = -1;
+    return false;
+}
+
+static void setLogDsn(const std::string& dsn) {
+    LockGuard guard(&g_logLock);
+    if (g_logDsn.empty() && !dsn.empty()) {
+        g_logDsn = dsn;
+        g_logEnabled = 0; // force re-evaluation
+    }
+}
+
 static void odbcLog(const char* func, const char* msg, SQLINTEGER rc) {
+    if (!isLogEnabled()) return;
+
     FILE* f = fopen("C:\\Scripts\\SAP_ODBC\\sap_odbc_debug.log", "a");
     if (!f) {
         // Fallback to %TEMP% if C:\Scripts\SAP_ODBC doesn't exist
@@ -40,33 +94,26 @@ static void odbcLog(const char* func, const char* msg, SQLINTEGER rc) {
     if (ltm) strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", ltm);
     const char* rcStr;
     char rcBuf[32];
-    if (strcmp(msg, "entry") == 0) {
-        rcStr = "-";
-    } else {
-        switch (rc) {
-            case SQL_SUCCESS:           rcStr = "SQL_SUCCESS"; break;
-            case SQL_SUCCESS_WITH_INFO: rcStr = "SQL_SUCCESS_WITH_INFO"; break;
-            case SQL_ERROR:             rcStr = "SQL_ERROR"; break;
-            case SQL_NO_DATA:           rcStr = "SQL_NO_DATA"; break;
-            case SQL_NEED_DATA:         rcStr = "SQL_NEED_DATA"; break;
-            default: snprintf(rcBuf, sizeof(rcBuf), "%d", (int)rc); rcStr = rcBuf; break;
-        }
+    switch (rc) {
+        case SQL_SUCCESS:           rcStr = "SQL_SUCCESS"; break;
+        case SQL_SUCCESS_WITH_INFO: rcStr = "SQL_SUCCESS_WITH_INFO"; break;
+        case SQL_ERROR:             rcStr = "SQL_ERROR"; break;
+        case SQL_NO_DATA:           rcStr = "SQL_NO_DATA"; break;
+        case SQL_NEED_DATA:         rcStr = "SQL_NEED_DATA"; break;
+        default: snprintf(rcBuf, sizeof(rcBuf), "%d", (int)rc); rcStr = rcBuf; break;
     }
     fprintf(f, "[%s] %s: %s (%s)\n", ts, func, msg, rcStr);
     fflush(f);
     fclose(f);
 }
 
-// RAII logger — logs entry on construction, exit on destruction
+// FuncLogger is now a no-op shell — no entry/exit logging.
+// It only provides the .ret() method so existing code compiles unchanged.
 struct FuncLogger {
     const char* func;
     SQLINTEGER rc;
-    FuncLogger(const char* f) : func(f), rc(0) {
-        odbcLog(func, "entry", 0);
-    }
-    ~FuncLogger() {
-        odbcLog(func, "exit", rc);
-    }
+    FuncLogger(const char* f) : func(f), rc(0) {}
+    ~FuncLogger() {}
     SQLRETURN ret(SQLRETURN r) { rc = (SQLINTEGER)(r); return r; }
 };
 
@@ -113,12 +160,24 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
         case DLL_PROCESS_ATTACH:
             g_hInstance = (HINSTANCE)hModule;
             InitializeCriticalSection(&g_handleLock);
+            InitializeCriticalSection(&g_logLock);
             RfcInit();
-            odbcLog("DllMain", "DLL_PROCESS_ATTACH - DLL loaded successfully", 0);
+            // DllMain logging is always active (not gated by LogEnable)
+            // because the DSN isn't known yet at attach time.
+            // We use a direct file write instead of odbcLog() to avoid
+            // the registry check.
+            {
+                FILE* f = fopen("C:\\Scripts\\SAP_ODBC\\sap_odbc_debug.log", "a");
+                if (f) { fprintf(f, "[DllMain] DLL_PROCESS_ATTACH - DLL loaded\n"); fflush(f); fclose(f); }
+            }
             break;
         case DLL_PROCESS_DETACH:
             DeleteCriticalSection(&g_handleLock);
-            odbcLog("DllMain", "DLL_PROCESS_DETACH - DLL unloaded", 0);
+            DeleteCriticalSection(&g_logLock);
+            {
+                FILE* f = fopen("C:\\Scripts\\SAP_ODBC\\sap_odbc_debug.log", "a");
+                if (f) { fprintf(f, "[DllMain] DLL_PROCESS_DETACH - DLL unloaded\n"); fflush(f); fclose(f); }
+            }
             break;
     }
     return TRUE;
@@ -235,6 +294,13 @@ SQLRETURN SQL_API SQLDriverConnect(SQLHDBC hdbc, SQLHWND hwnd,
     std::string connstr = sqlCharToString(szConnStrIn, cbConnStrIn);
     conn->params = parseConnectionString(connstr);
 
+    // Enable registry-gated logging if DSN is specified in the connection string
+    if (!conn->params.dsn_name.empty()) {
+        setLogDsn(conn->params.dsn_name);
+    }
+    // Log SQLDriverConnect entry (only if logging is enabled)
+    odbcLog("SQLDriverConnect", "entry", 0);
+
     // fDriverCompletion handling:
     //   SQL_DRIVER_PROMPT   — always prompt (we don't have a dialog here, so proceed)
     //   SQL_DRIVER_COMPLETE — prompt only if not enough info (we have connstr, proceed)
@@ -272,6 +338,9 @@ SQLRETURN SQL_API SQLConnect(SQLHDBC hdbc, SQLCHAR* szDSN, SQLSMALLINT cbDSN,
         return logger.ret(returnSqlError((SQLHANDLE)hdbc, SQL_HANDLE_DBC, "SQLConnect: DSN name is required"));
     }
     conn->params.dsn_name = dsn;
+
+    // Enable registry-gated logging for this DSN
+    setLogDsn(dsn);
 
     // Read DSN parameters from registry: HKLM\SOFTWARE\ODBC\ODBC.INI\<DSN>
     std::string regPath = "SOFTWARE\\ODBC\\ODBC.INI\\" + dsn;
@@ -333,11 +402,9 @@ SQLRETURN SQL_API SQLDisconnect(SQLHDBC hdbc) {
 
 extern "C" SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQLINTEGER cbSqlStr) {
     FuncLogger logger("SQLExecDirect");
-    odbcLog("SQLExecDirect", "=== ENTER ===", 0);
     SapStatement* stmt = getStatementHandle((SQLHANDLE)hstmt);
     if (!stmt) {
         setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT, "SQLExecDirect: Invalid statement handle", "HY000");
-        odbcLog("SQLExecDirect", "Invalid statement handle", -1);
         return logger.ret(SQL_ERROR);
     }
 
@@ -345,17 +412,13 @@ extern "C" SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQ
     if (!stmt->connection || !stmt->connection->connected) {
         setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT,
                  "SQLExecDirect: Connection is not established", "08002");
-        odbcLog("SQLExecDirect", "Connection not established", -1);
         return logger.ret(SQL_ERROR);
     }
-
-    odbcLog("SQLExecDirect", "Connection OK, getting SQL text", 0);
 
     // Get SQL text
     if (!szSqlStr) {
         setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT,
                  "SQLExecDirect: SQL string is NULL", "HY009");
-        odbcLog("SQLExecDirect", "SQL string is NULL", -1);
         return logger.ret(SQL_ERROR);
     }
 
@@ -366,32 +429,29 @@ extern "C" SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQ
     } else {
         setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT,
                  "SQLExecDirect: Invalid SQL string length", "HY090");
-        odbcLog("SQLExecDirect", "Invalid SQL length", -1);
         return logger.ret(SQL_ERROR);
     }
 
-    odbcLog("SQLExecDirect", ("SQL: " + stmt->sql).c_str(), 0);
+    // Log the SQL text (only if logging is enabled via registry)
+    odbcLog("SQLExecDirect", (std::string("SQL: ") + stmt->sql).c_str(), 0);
 
     // Check if this is a simple table read (no JOIN/GROUP BY/etc.)
     std::string table, whereClause, fields;
     bool isSimple = isSimpleTableRead(stmt->sql, table, whereClause, fields);
     if (isSimple) {
-        odbcLog("SQLExecDirect", ("Simple table read: table=" + table + " fields=" + fields + " where=" + whereClause).c_str(), 0);
         // Use chunked Z_READ_TABLE for flat table reads
         std::string error;
         std::string orderBy = "";
         int chunkSize = 10000;
 
-        odbcLog("SQLExecDirect", "Calling rfcReadTableChunked...", 0);
         if (!rfcReadTableChunked(stmt->connection, table, whereClause, fields, orderBy,
                                  chunkSize, stmt->columns, stmt->rows, stmt->row_count, error)) {
             stmt->executed = false;
             setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT, error);
-            odbcLog("SQLExecDirect", ("rfcReadTableChunked FAILED: " + error).c_str(), -1);
+            odbcLog("SQLExecDirect", (std::string("ERROR: rfcReadTableChunked failed: ") + error).c_str(), SQL_ERROR);
             return logger.ret(SQL_ERROR);
         }
 
-        odbcLog("SQLExecDirect", ("rfcReadTableChunked OK, rows=" + std::to_string(stmt->rows.size()) + " cols=" + std::to_string(stmt->columns.size())).c_str(), 0);
         stmt->current_row = 0;
         stmt->executed = true;
         stmt->metadata_mode = "";
@@ -399,17 +459,15 @@ extern "C" SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQ
     }
 
     // Complex query — use Z_EXECUTE_SQL (ADBC, server-side joins)
-    odbcLog("SQLExecDirect", "Complex query, calling rfcExecuteSql...", 0);
     std::string error;
     if (!rfcExecuteSql(stmt->connection, stmt->sql.c_str(),
                        stmt->columns, stmt->rows, stmt->row_count, error)) {
         stmt->executed = false;
         setError((SQLHANDLE)hstmt, SQL_HANDLE_STMT, error);
-        odbcLog("SQLExecDirect", ("rfcExecuteSql FAILED: " + error).c_str(), -1);
+        odbcLog("SQLExecDirect", (std::string("ERROR: rfcExecuteSql failed: ") + error).c_str(), SQL_ERROR);
         return logger.ret(SQL_ERROR);
     }
 
-    odbcLog("SQLExecDirect", ("rfcExecuteSql OK, rows=" + std::to_string(stmt->rows.size()) + " cols=" + std::to_string(stmt->columns.size())).c_str(), 0);
     stmt->current_row = 0;
     stmt->executed = true;
     stmt->metadata_mode = "";
@@ -1548,15 +1606,6 @@ SQLRETURN SQL_API SQLGetFunctions(SQLHDBC hdbc, SQLUSMALLINT fFunction, SQLUSMAL
         SET_FUNC(SQL_API_SQLCLOSECURSOR);
         SET_FUNC(SQL_API_SQLBINDCOL);
         #undef SET_FUNC
-        // Debug: log arr[0..3] values
-        {
-            char dbgbuf[256];
-            snprintf(dbgbuf, sizeof(dbgbuf),
-                "ODBC3_ALL: arr[0]=%u arr[1]=%u arr[2]=%u arr[3]=%u size=%d",
-                (unsigned)arr[0], (unsigned)arr[1], (unsigned)arr[2], (unsigned)arr[3],
-                (int)SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
-            odbcLog("SQLGetFunctions", dbgbuf, 0);
-        }
         return SQL_SUCCESS;
     }
 

@@ -25,6 +25,27 @@ add_library(sapodbcabap SHARED
     src/chunked_read.cpp
 )
 
+# Compile .rc resource into .res object (Windows/MinGW only)
+if(WIN32 AND MINGW)
+    find_program(WINDRES x86_64-w64-mingw32-windres)
+    if(NOT WINDRES)
+        message(FATAL_ERROR "windres not found — needed for dialog resource compilation")
+    endif()
+    set(CONFIG_DLG_RES ${CMAKE_BINARY_DIR}/config_dlg.res)
+    add_custom_command(
+        OUTPUT ${CONFIG_DLG_RES}
+        COMMAND ${WINDRES} -O coff -I ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/config_dlg.rc
+                -o ${CONFIG_DLG_RES}
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/config_dlg.rc
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/resource.h
+        COMMENT "Compiling dialog resource config_dlg.rc"
+    )
+    # Add .res directly to the linker command — target_sources alone
+    # does not reliably pass .res through to the link step under MinGW.
+    target_sources(sapodbcabap PRIVATE ${CONFIG_DLG_RES})
+endif()
+
 # Include directories
 if(CI_BUILD)
     target_include_directories(sapodbcabap PRIVATE
@@ -43,6 +64,11 @@ endif()
 # Link libraries
 if(WIN32)
     target_link_libraries(sapodbcabap PRIVATE odbc32 odbccp32)
+    if(MINGW)
+        # Statisch linken gegen MinGW-Runtime, damit libgcc_s_seh-1.dll
+        # und libstdc++-6.dll nicht als externe Abhaengigkeit entstehen
+        target_link_options(sapodbcabap PRIVATE -static-libgcc -static-libstdc++)
+    endif()
 endif()
 
 if(NOT CI_BUILD)
@@ -61,9 +87,9 @@ set_target_properties(sapodbcabap PROPERTIES
 
 if(WIN32)
     if(MINGW)
-        # MinGW: use linker --def option via module definition
+        # MinGW: use linker --def option via module definition + link .res resource
         set_target_properties(sapodbcabap PROPERTIES
-            LINK_FLAGS "--def=${CMAKE_CURRENT_SOURCE_DIR}/src/sapodbcabap.def"
+            LINK_FLAGS "-Wl,--kill-at -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/sapodbcabap.exports --def=${CMAKE_CURRENT_SOURCE_DIR}/src/sapodbcabap.def ${CMAKE_BINARY_DIR}/config_dlg.res"
         )
     else()
         # MSVC: use /DEF linker flag
