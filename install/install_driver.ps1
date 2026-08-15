@@ -173,7 +173,8 @@ Set-ItemProperty -Path $DSNKey -Name "Client"   -Value $Client
 Set-ItemProperty -Path $DSNKey -Name "User"     -Value $SapUser
 Set-ItemProperty -Path $DSNKey -Name "Password" -Value $Password
 Set-ItemProperty -Path $DSNKey -Name "Lang"     -Value $Lang
-Set-ItemProperty -Path $DSNKey -Name "MaxRows"  -Value $MaxRows
+Set-ItemProperty -Path $DSNKey -Name "MaxRows"   -Value $MaxRows
+Set-ItemProperty -Path $DSNKey -Name "LogEnable" -Value 0 -Type DWord
 
 $DSNList = "$Registry\ODBC.INI\ODBC Data Sources"
 if (-not (Test-Path $DSNList)) {
