@@ -188,14 +188,14 @@ FUNCTION Z_READ_TABLE.
 * Get field metadata via DDIF_NAMETAB_GET (flat list including .INCLUDE fields)
 * get_components() misses fields inside .INCLUDE structures (e.g. MARA-ERNAM)
 *---------------------------------------------------------------------*
-  DATA: lt_nametab TYPE TABLE OF x031l,
-        ls_nametab TYPE x031l.
+  DATA: lt_nametab TYPE TABLE OF dfies,
+        ls_nametab TYPE dfies.
 
   CALL FUNCTION 'DDIF_NAMETAB_GET'
     EXPORTING
       tabname        = lv_check_table
     TABLES
-      x031l_tab      = lt_nametab
+      dfies_tab     = lt_nametab
     EXCEPTIONS
       not_found      = 1
       OTHERS         = 2.
