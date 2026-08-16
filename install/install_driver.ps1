@@ -30,7 +30,8 @@ param(
     [string]$SapUser    = "",
     [string]$Password   = "",
     [string]$Lang       = "DE",
-    [int]$MaxRows       = 50000
+    [int]$MaxRows       = 50000,
+    [string]$TableLogPath = ""
 )
 
 # --- Admin-Check ---
@@ -130,6 +131,8 @@ if ($SapUser -eq "") {
     )
     $input = Read-Host "Sprache (Lang) [$Lang]"
     if ($input -ne "") { $Lang = $input }
+    $input = Read-Host "Tabellen-Log Pfad (leer = kein Logging) [$TableLogPath]"
+    if ($input -ne "") { $TableLogPath = $input }
 }
 
 $Registry = "HKLM:\SOFTWARE\ODBC"
@@ -175,6 +178,12 @@ Set-ItemProperty -Path $DSNKey -Name "Password" -Value $Password
 Set-ItemProperty -Path $DSNKey -Name "Lang"     -Value $Lang
 Set-ItemProperty -Path $DSNKey -Name "MaxRows"   -Value $MaxRows
 Set-ItemProperty -Path $DSNKey -Name "LogEnable" -Value 0 -Type DWord
+
+# TableLogPath: wenn gesetzt, loggt der Treiber jede abgefragte Tabelle in diese Datei
+if ($TableLogPath -ne "") {
+    Set-ItemProperty -Path $DSNKey -Name "TableLogPath" -Value $TableLogPath
+    Write-Host "  Tabellen-Log: $TableLogPath" -ForegroundColor Green
+}
 
 $DSNList = "$Registry\ODBC.INI\ODBC Data Sources"
 if (-not (Test-Path $DSNList)) {

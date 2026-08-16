@@ -5,10 +5,14 @@
 #include <cstdlib>
 #include <cstdio>
 #include <ctime>
+#include <set>
 
 // Handle registry — maps ODBC handles to our internal structs
 static std::map<SQLHANDLE, SapConnection*> g_connections;
 static std::map<SQLHANDLE, SapStatement*> g_statements;
+
+// Forward declaration (defined later in this file)
+static std::string regReadString(HKEY hKey, const char* valueName);
 
 // Critical section to protect g_connections, g_statements, g_errors maps
 static CRITICAL_SECTION g_handleLock;
@@ -74,6 +78,48 @@ static void setLogDsn(const std::string& dsn) {
         g_logDsn = dsn;
         g_logEnabled = 0; // force re-evaluation
     }
+}
+
+// ============================================================
+// Queried Tables Logging — appends unique table names to a file
+// Enabled when registry value "TableLogPath" is set (non-empty)
+// in the DSN registry key. File format: one table name per line.
+// Python sync client reads the file, deduplicates, and builds
+// the replication config.
+// ============================================================
+
+static std::string g_tableLogPath;          // file path from registry (empty = off)
+static std::set<std::string> g_loggedTables; // in-memory dedup set
+static CRITICAL_SECTION g_tableLogLock;      // protects g_tableLogPath / g_loggedTables
+
+// Set the table log path from the DSN registry key.
+// Called during SQLDriverConnect / SQLConnect after the DSN is known.
+static void setTableLogPath(const std::string& dsn) {
+    if (dsn.empty()) return;
+    std::string regPath = "SOFTWARE\\ODBC\\ODBC.INI\\" + dsn;
+    HKEY hKey;
+    LONG rc = RegOpenKeyExA(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ, &hKey);
+    if (rc != ERROR_SUCCESS) return;
+    std::string path = regReadString(hKey, "TableLogPath");
+    RegCloseKey(hKey);
+    LockGuard guard(&g_tableLogLock);
+    g_tableLogPath = path;  // empty string if not found → logging off
+}
+
+// Log a queried table name to the CSV file (if logging is enabled).
+// Uses g_loggedTables for in-memory deduplication — each unique table
+// is appended only once per DLL session.
+static void logQueriedTable(const std::string& tableName) {
+    if (tableName.empty()) return;
+    LockGuard guard(&g_tableLogLock);
+    if (g_tableLogPath.empty()) return;  // logging disabled
+    if (g_loggedTables.count(tableName)) return;  // already logged
+    g_loggedTables.insert(tableName);
+    FILE* f = fopen(g_tableLogPath.c_str(), "a");
+    if (!f) return;
+    fprintf(f, "%s\n", tableName.c_str());
+    fflush(f);
+    fclose(f);
 }
 
 static void odbcLog(const char* func, const char* msg, SQLINTEGER rc) {
@@ -161,6 +207,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
             g_hInstance = (HINSTANCE)hModule;
             InitializeCriticalSection(&g_handleLock);
             InitializeCriticalSection(&g_logLock);
+            InitializeCriticalSection(&g_tableLogLock);
             RfcInit();
             // DllMain logging is always active (not gated by LogEnable)
             // because the DSN isn't known yet at attach time.
@@ -174,6 +221,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
         case DLL_PROCESS_DETACH:
             DeleteCriticalSection(&g_handleLock);
             DeleteCriticalSection(&g_logLock);
+            DeleteCriticalSection(&g_tableLogLock);
             {
                 FILE* f = fopen("C:\\Scripts\\SAP_ODBC\\sap_odbc_debug.log", "a");
                 if (f) { fprintf(f, "[DllMain] DLL_PROCESS_DETACH - DLL unloaded\n"); fflush(f); fclose(f); }
@@ -297,6 +345,7 @@ SQLRETURN SQL_API SQLDriverConnect(SQLHDBC hdbc, SQLHWND hwnd,
     // Enable registry-gated logging if DSN is specified in the connection string
     if (!conn->params.dsn_name.empty()) {
         setLogDsn(conn->params.dsn_name);
+        setTableLogPath(conn->params.dsn_name);
     }
     // Log SQLDriverConnect entry (only if logging is enabled)
     odbcLog("SQLDriverConnect", "entry", 0);
@@ -319,9 +368,6 @@ SQLRETURN SQL_API SQLDriverConnect(SQLHDBC hdbc, SQLHWND hwnd,
     return SQL_SUCCESS;
 }
 
-// Forward declaration of regReadString (defined later in this file)
-static std::string regReadString(HKEY hKey, const char* valueName);
-
 SQLRETURN SQL_API SQLConnect(SQLHDBC hdbc, SQLCHAR* szDSN, SQLSMALLINT cbDSN,
     SQLCHAR* szUID, SQLSMALLINT cbUID, SQLCHAR* szAuthStr, SQLSMALLINT cbAuthStr) {
     FuncLogger logger("SQLConnect");
@@ -341,6 +387,7 @@ SQLRETURN SQL_API SQLConnect(SQLHDBC hdbc, SQLCHAR* szDSN, SQLSMALLINT cbDSN,
 
     // Enable registry-gated logging for this DSN
     setLogDsn(dsn);
+    setTableLogPath(dsn);
 
     // Read DSN parameters from registry: HKLM\SOFTWARE\ODBC\ODBC.INI\<DSN>
     std::string regPath = "SOFTWARE\\ODBC\\ODBC.INI\\" + dsn;
@@ -455,6 +502,8 @@ extern "C" SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQ
         stmt->current_row = 0;
         stmt->executed = true;
         stmt->metadata_mode = "";
+        // Log the queried table name (if TableLogPath is set in registry)
+        logQueriedTable(table);
         return SQL_SUCCESS;
     }
 
