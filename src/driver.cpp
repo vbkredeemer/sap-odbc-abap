@@ -2255,7 +2255,7 @@ static INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message,
             SetWindowTextA(hDlg, title.c_str());
 
             // Read current values from registry (for CONFIG) or use defaults
-            std::string host, sysnr, client, user, password, lang, maxrows;
+            std::string host, sysnr, client, user, password, lang, maxrows, logpath;
             std::string dsn = ctx->dsnName;
 
             if (ctx->fRequest == ODBC_CONFIG_DSN) {
@@ -2270,6 +2270,7 @@ static INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message,
                     password = regReadString(hKey, "Password");
                     lang = regReadString(hKey, "Lang");
                     maxrows = regReadString(hKey, "MaxRows");
+                    logpath = regReadString(hKey, "TableLogPath");
                     RegCloseKey(hKey);
                 }
             }
@@ -2283,6 +2284,7 @@ static INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message,
             setEditText(hDlg, IDC_PASSWORD_EDIT, password);
             setEditText(hDlg, IDC_LANG_EDIT, lang.empty() ? "EN" : lang);
             setEditText(hDlg, IDC_MAXROWS_EDIT, maxrows.empty() ? "30000" : maxrows);
+            setEditText(hDlg, IDC_LOGPATH_EDIT, logpath);
 
             // For CONFIG, DSN name is not editable
             if (ctx->fRequest == ODBC_CONFIG_DSN) {
@@ -2333,6 +2335,7 @@ static INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message,
                     std::string password = getEditText(hDlg, IDC_PASSWORD_EDIT);
                     std::string lang = getEditText(hDlg, IDC_LANG_EDIT);
                     std::string maxrows = getEditText(hDlg, IDC_MAXROWS_EDIT);
+                    std::string logpath = getEditText(hDlg, IDC_LOGPATH_EDIT);
 
                     if (dsn.empty()) {
                         MessageBoxA(hDlg, "DSN name is required.", "Error",
@@ -2379,6 +2382,7 @@ static INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message,
                     regWriteString(hKey, "Password", password);
                     regWriteString(hKey, "Lang", lang.empty() ? "EN" : lang);
                     regWriteString(hKey, "MaxRows", maxrows.empty() ? "30000" : maxrows);
+                    regWriteString(hKey, "TableLogPath", logpath);
 
                     RegCloseKey(hKey);
 

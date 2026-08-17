@@ -14,5 +14,6 @@
 #define IDC_LANG_EDIT          107
 #define IDC_MAXROWS_EDIT       108
 #define IDC_TEST_BTN           109
+#define IDC_LOGPATH_EDIT       110
 
 #endif // SAP_ODBC_RESOURCE_H

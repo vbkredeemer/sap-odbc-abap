@@ -131,7 +131,7 @@ if ($SapUser -eq "") {
     )
     $input = Read-Host "Sprache (Lang) [$Lang]"
     if ($input -ne "") { $Lang = $input }
-    $input = Read-Host "Tabellen-Log Pfad (leer = kein Logging) [$TableLogPath]"
+    $input = Read-Host "Tabellen-Log Datei (vollstaendiger Pfad z.B. C:\Scripts\SAP_ODBC\queried_tables.txt, leer = kein Logging) [$TableLogPath]"
     if ($input -ne "") { $TableLogPath = $input }
 }
 

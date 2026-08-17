@@ -1,7 +1,7 @@
 #include <windows.h>
 #include "resource.h"
 
-DLG_CONFIG DIALOGEX 0, 0, 480, 350
+DLG_CONFIG DIALOGEX 0, 0, 480, 260
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "SAP ODBC Configuration"
 FONT 8, "MS Shell Dlg"
@@ -30,7 +30,10 @@ BEGIN
     LTEXT           "MaxRows:",      -1,             12, 152, 70, 12
     EDITTEXT                        IDC_MAXROWS_EDIT,   87, 150, 380, 14, ES_AUTOHSCROLL
 
-    PUSHBUTTON      "Test Connection", IDC_TEST_BTN, 12, 190, 110, 26
-    DEFPUSHBUTTON   "OK",           IDOK,             200, 190, 70, 26
-    PUSHBUTTON      "Cancel",       IDCANCEL,         290, 190, 70, 26
+    LTEXT           "Log Path:",     -1,             12, 172, 70, 12
+    EDITTEXT                        IDC_LOGPATH_EDIT,   87, 170, 380, 14, ES_AUTOHSCROLL
+
+    PUSHBUTTON      "Test Connection", IDC_TEST_BTN, 12, 210, 110, 26
+    DEFPUSHBUTTON   "OK",           IDOK,             200, 210, 70, 26
+    PUSHBUTTON      "Cancel",       IDCANCEL,         290, 210, 70, 26
 END
