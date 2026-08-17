@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <ctime>
 #include <set>
+#include <algorithm>
 
 // Handle registry — maps ODBC handles to our internal structs
 static std::map<SQLHANDLE, SapConnection*> g_connections;
@@ -120,6 +121,376 @@ static void logQueriedTable(const std::string& tableName) {
     fprintf(f, "%s\n", tableName.c_str());
     fflush(f);
     fclose(f);
+}
+
+// ============================================================
+// SQL table name extraction for complex queries (JOINs, etc.)
+// Parses SQL for table names after FROM and JOIN keywords.
+// Returns unique, uppercased table names (schema prefixes and
+// quotes/brackets stripped). No regex — MinGW-safe string search.
+// ============================================================
+
+// Case-insensitive comparison of s[pos..] against keyword.
+static bool ciStartsWith(const std::string& s, size_t pos, const char* keyword) {
+    size_t klen = strlen(keyword);
+    if (pos + klen > s.length()) return false;
+    for (size_t i = 0; i < klen; i++) {
+        if (::toupper((unsigned char)s[pos + i]) != ::toupper((unsigned char)keyword[i]))
+            return false;
+    }
+    return true;
+}
+
+// Check if character is a valid SQL identifier character
+static bool isIdentChar(char c) {
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+           (c >= '0' && c <= '9') || c == '_' || c == '.' || c == '"' || c == '[' || c == ']';
+}
+
+// Strip schema prefix (e.g. "SAPABAP1.MARA" → "MARA") and surrounding quotes/brackets
+static std::string cleanTableName(std::string name) {
+    // Trim whitespace
+    size_t start = name.find_first_not_of(" \t\n\r");
+    if (start == std::string::npos) return "";
+    size_t end = name.find_last_not_of(" \t\n\r");
+    name = name.substr(start, end - start + 1);
+
+    // Strip surrounding brackets [...]
+    if (name.size() >= 2 && name[0] == '[' && name[name.size()-1] == ']')
+        name = name.substr(1, name.size() - 2);
+    // Strip surrounding double-quotes
+    if (name.size() >= 2 && name[0] == '"' && name[name.size()-1] == '"')
+        name = name.substr(1, name.size() - 2);
+
+    // Strip schema prefix: take part after last dot
+    size_t dot = name.rfind('.');
+    if (dot != std::string::npos)
+        name = name.substr(dot + 1);
+
+    // Strip any remaining quotes
+    if (name.size() >= 2 && name[0] == '"' && name[name.size()-1] == '"')
+        name = name.substr(1, name.size() - 2);
+    if (name.size() >= 2 && name[0] == '[' && name[name.size()-1] == ']')
+        name = name.substr(1, name.size() - 2);
+
+    return name;
+}
+
+// Uppercase a string
+static std::string upperStr(const std::string& s) {
+    std::string r = s;
+    std::transform(r.begin(), r.end(), r.begin(), ::toupper);
+    return r;
+}
+
+static std::vector<std::string> extractTableNames(const std::string& sql) {
+    std::vector<std::string> tables;
+    std::set<std::string> cteSkip; // CTE names to skip (uppercased)
+
+    // We iterate through the SQL string looking for FROM and *JOIN keywords
+    // preceded by whitespace or at the start. For each occurrence, we extract
+    // the table identifier(s) that follow.
+    //
+    // Handling:
+    //   FROM table, table2, table3     — comma-separated
+    //   FROM table t / table AS t      — alias (skip alias)
+    //   FROM (SELECT ...) t            — subquery (skip it, tables extracted
+    //                                     from inner query by recursive scan)
+    //   [INNER|LEFT|RIGHT|OUTER|FULL|CROSS] JOIN table [AS] [alias]
+    //   WITH cte AS (SELECT ... FROM table) — CTE aliases skipped, real
+    //                                          tables found in inner queries
+
+    size_t len = sql.length();
+    for (size_t i = 0; i < len; ) {
+        // Skip whitespace
+        while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+            i++;
+        if (i >= len) break;
+
+        // Detect WITH [RECURSIVE] and parse CTE definitions to populate skip set.
+        // Pattern: WITH [RECURSIVE] name AS ( ... ), name2 AS ( ... ), ... SELECT
+        if (ciStartsWith(sql, i, "WITH") &&
+            i + 4 <= len && !isIdentChar(sql[i + 4])) {
+            size_t wpos = i + 4;
+            // Skip whitespace
+            while (wpos < len && (sql[wpos] == ' ' || sql[wpos] == '\t' || sql[wpos] == '\n' || sql[wpos] == '\r'))
+                wpos++;
+            // Optional RECURSIVE keyword
+            if (ciStartsWith(sql, wpos, "RECURSIVE") &&
+                wpos + 9 <= len && !isIdentChar(sql[wpos + 9])) {
+                wpos += 9;
+                while (wpos < len && (sql[wpos] == ' ' || sql[wpos] == '\t' || sql[wpos] == '\n' || sql[wpos] == '\r'))
+                    wpos++;
+            }
+            // Parse CTE definitions: name AS ( ... ) [, name AS ( ... )]*
+            while (wpos < len) {
+                // Extract CTE name (identifier or quoted)
+                std::string cteName;
+                if (sql[wpos] == '"') {
+                    wpos++;
+                    while (wpos < len && sql[wpos] != '"') { cteName += sql[wpos]; wpos++; }
+                    if (wpos < len) wpos++; // closing quote
+                } else {
+                    while (wpos < len && (isalnum((unsigned char)sql[wpos]) || sql[wpos] == '_')) {
+                        cteName += sql[wpos];
+                        wpos++;
+                    }
+                }
+                if (cteName.empty()) break; // not a CTE definition
+                // Skip whitespace
+                while (wpos < len && (sql[wpos] == ' ' || sql[wpos] == '\t' || sql[wpos] == '\n' || sql[wpos] == '\r'))
+                    wpos++;
+                // Expect "AS"
+                if (!ciStartsWith(sql, wpos, "AS")) break;
+                wpos += 2;
+                // Skip whitespace
+                while (wpos < len && (sql[wpos] == ' ' || sql[wpos] == '\t' || sql[wpos] == '\n' || sql[wpos] == '\r'))
+                    wpos++;
+                // Expect "("
+                if (wpos >= len || sql[wpos] != '(') break;
+                // Skip the parenthesized block (balanced)
+                int depth = 1;
+                wpos++;
+                while (wpos < len && depth > 0) {
+                    if (sql[wpos] == '(') depth++;
+                    else if (sql[wpos] == ')') depth--;
+                    wpos++;
+                }
+                // Add CTE name to skip set (uppercased)
+                cteSkip.insert(upperStr(cteName));
+                // Skip whitespace
+                while (wpos < len && (sql[wpos] == ' ' || sql[wpos] == '\t' || sql[wpos] == '\n' || sql[wpos] == '\r'))
+                    wpos++;
+                // Check for comma → another CTE definition
+                if (wpos < len && sql[wpos] == ',') {
+                    wpos++;
+                    while (wpos < len && (sql[wpos] == ' ' || sql[wpos] == '\t' || sql[wpos] == '\n' || sql[wpos] == '\r'))
+                        wpos++;
+                    continue; // parse next CTE
+                }
+                break; // no more CTEs, main query follows
+            }
+            // Continue scanning from after the WITH clause — the outer loop
+            // will find FROM/JOIN inside both the CTE bodies (already skipped
+            // above) and the main query. We need to continue from position i
+            // so that FROM/JOIN inside the CTE subqueries are also found.
+            // Advance i past "WITH" keyword only; the outer loop will scan
+            // the rest token by token and find FROM/JOIN everywhere.
+            i += 4; // skip "WITH"
+            continue;
+        }
+
+        // Try to match keywords: FROM, JOIN, INNER JOIN, LEFT JOIN, RIGHT JOIN,
+        // OUTER JOIN, FULL JOIN, CROSS JOIN
+        bool isFrom = false, isJoin = false;
+
+        // Check for multi-word join types: INNER/LEFT/RIGHT/OUTER/FULL/CROSS
+        const char* joinTypes[] = {"INNER", "LEFT", "RIGHT", "OUTER", "FULL", "CROSS"};
+        for (int j = 0; j < 6; j++) {
+            if (ciStartsWith(sql, i, joinTypes[j]) &&
+                i + strlen(joinTypes[j]) <= len && !isIdentChar(sql[i + strlen(joinTypes[j])])) {
+                size_t afterKw = i + strlen(joinTypes[j]);
+                // Skip whitespace
+                while (afterKw < len && (sql[afterKw] == ' ' || sql[afterKw] == '\t' || sql[afterKw] == '\n' || sql[afterKw] == '\r'))
+                    afterKw++;
+                if (afterKw < len && ciStartsWith(sql, afterKw, "JOIN") &&
+                    afterKw + 4 <= len && !isIdentChar(sql[afterKw + 4])) {
+                    isJoin = true;
+                    i = afterKw + 4; // skip "JOIN"
+                    break;
+                }
+            }
+        }
+
+        if (!isJoin && !isFrom) {
+            if (ciStartsWith(sql, i, "FROM") &&
+                i + 4 <= len && !isIdentChar(sql[i + 4])) {
+                isFrom = true;
+                i += 4; // skip "FROM"
+            } else if (ciStartsWith(sql, i, "JOIN") &&
+                       i + 4 <= len && !isIdentChar(sql[i + 4])) {
+                isJoin = true;
+                i += 4; // skip "JOIN"
+            }
+        }
+
+        if (!isFrom && !isJoin) {
+            // Skip this token (advance to next whitespace-delimited token)
+            while (i < len && sql[i] != ' ' && sql[i] != '\t' && sql[i] != '\n' && sql[i] != '\r')
+                i++;
+            continue;
+        }
+
+        // We're positioned right after FROM or JOIN keyword.
+        // Skip whitespace.
+        while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+            i++;
+
+        // Parse table reference(s). For FROM, handle comma-separated list.
+        while (i < len) {
+            // Skip whitespace
+            while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                i++;
+            if (i >= len) break;
+
+            // Subquery: (SELECT ... ) — skip the parenthesized block
+            if (sql[i] == '(') {
+                int depth = 1;
+                size_t subStart = i + 1;
+                i++;
+                while (i < len && depth > 0) {
+                    if (sql[i] == '(') depth++;
+                    else if (sql[i] == ')') depth--;
+                    i++;
+                }
+                // The inner query will be scanned in the outer loop since
+                // we advance i past it — but we need to scan the subquery
+                // content for its own FROM/JOIN. Extract the substring and
+                // recurse by scanning it in the same outer loop.
+                // Instead of recursion, let's just continue the outer loop
+                // which will find FROM/JOIN inside the subquery text.
+                // But we've already skipped past it. So let's handle it:
+                // Extract subquery, recursively call extractTableNames.
+                std::string subquery = sql.substr(subStart, i - subStart - 1);
+                std::vector<std::string> subTables = extractTableNames(subquery);
+                for (size_t k = 0; k < subTables.size(); k++) {
+                    std::string cleaned = cleanTableName(subTables[k]);
+                    if (!cleaned.empty()) {
+                        std::string up = upperStr(cleaned);
+                        // Deduplicate
+                        bool found = false;
+                        for (size_t m = 0; m < tables.size(); m++) {
+                            if (tables[m] == up) { found = true; break; }
+                        }
+                        if (!found) tables.push_back(up);
+                    }
+                }
+                // After subquery, there may be an alias then comma or next clause
+                // Skip alias token if present
+                while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                    i++;
+                // Check for "AS alias" or just "alias"
+                if (i < len && ciStartsWith(sql, i, "AS ")) {
+                    i += 3;
+                    while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                        i++;
+                }
+                // Skip alias token (one word)
+                if (i < len && sql[i] != ',' && sql[i] != ')') {
+                    // Skip until whitespace, comma, or end
+                    while (i < len && sql[i] != ' ' && sql[i] != '\t' && sql[i] != '\n' && sql[i] != '\r' && sql[i] != ',')
+                        i++;
+                }
+                // Continue to check for comma-separated next table
+                while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                    i++;
+                if (i < len && sql[i] == ',') {
+                    i++;
+                    continue; // parse next table reference in FROM list
+                }
+                break; // no more comma-separated tables
+            }
+
+            // Extract table name token (identifier, possibly with schema.dot)
+            std::string rawName;
+            // Handle quoted identifiers
+            if (sql[i] == '"') {
+                rawName += '"';
+                i++;
+                while (i < len && sql[i] != '"') {
+                    rawName += sql[i];
+                    i++;
+                }
+                if (i < len) { rawName += '"'; i++; } // closing quote
+            } else if (sql[i] == '[') {
+                rawName += '[';
+                i++;
+                while (i < len && sql[i] != ']') {
+                    rawName += sql[i];
+                    i++;
+                }
+                if (i < len) { rawName += ']'; i++; } // closing bracket
+            } else {
+                // Regular identifier: letters, digits, underscore, dot
+                while (i < len && isIdentChar(sql[i]) && sql[i] != '"' && sql[i] != '[' && sql[i] != ']') {
+                    rawName += sql[i];
+                    i++;
+                }
+            }
+
+            // Handle schema.table (dot notation already captured in rawName)
+
+            std::string cleaned = cleanTableName(rawName);
+            if (!cleaned.empty()) {
+                std::string up = upperStr(cleaned);
+                // Skip CTE names (they're aliases, not real tables)
+                if (cteSkip.count(up)) {
+                    // Not a real table, skip
+                } else {
+                    // Deduplicate
+                    bool found = false;
+                    for (size_t m = 0; m < tables.size(); m++) {
+                        if (tables[m] == up) { found = true; break; }
+                    }
+                    if (!found) tables.push_back(up);
+                }
+            }
+
+            // Skip whitespace after table name
+            while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                i++;
+
+            // Check for "AS alias" — skip it
+            if (i < len && (ciStartsWith(sql, i, "AS ") || ciStartsWith(sql, i, "AS\t") || ciStartsWith(sql, i, "AS\n"))) {
+                i += 2; // skip "AS"
+                while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                    i++;
+                // Skip alias token
+                while (i < len && sql[i] != ' ' && sql[i] != '\t' && sql[i] != '\n' && sql[i] != '\r' && sql[i] != ',')
+                    i++;
+            } else if (i < len && isFrom) {
+                // For FROM clause, there might be a bare alias (no AS).
+                // But we need to be careful not to treat keywords like WHERE,
+                // GROUP, ORDER, etc. as aliases. If the next token is a known
+                // SQL keyword, we don't treat it as an alias.
+                // Only treat as alias if it's not a keyword.
+                if (i < len && sql[i] != ',' && !ciStartsWith(sql, i, "WHERE") &&
+                    !ciStartsWith(sql, i, "GROUP") && !ciStartsWith(sql, i, "ORDER") &&
+                    !ciStartsWith(sql, i, "HAVING") && !ciStartsWith(sql, i, "LIMIT") &&
+                    !ciStartsWith(sql, i, "UNION") && !ciStartsWith(sql, i, "JOIN") &&
+                    !ciStartsWith(sql, i, "INNER") && !ciStartsWith(sql, i, "LEFT") &&
+                    !ciStartsWith(sql, i, "RIGHT") && !ciStartsWith(sql, i, "OUTER") &&
+                    !ciStartsWith(sql, i, "FULL") && !ciStartsWith(sql, i, "CROSS") &&
+                    !ciStartsWith(sql, i, "ON") && !ciStartsWith(sql, i, "USING") &&
+                    !ciStartsWith(sql, i, "FETCH") && !ciStartsWith(sql, i, "OFFSET") &&
+                    !ciStartsWith(sql, i, "AS")) {
+                    // Skip alias token (one word, or quoted)
+                    if (sql[i] == '"') {
+                        i++;
+                        while (i < len && sql[i] != '"') i++;
+                        if (i < len) i++;
+                    } else {
+                        while (i < len && sql[i] != ' ' && sql[i] != '\t' && sql[i] != '\n' && sql[i] != '\r' && sql[i] != ',')
+                            i++;
+                    }
+                }
+            }
+
+            // Skip whitespace after possible alias
+            while (i < len && (sql[i] == ' ' || sql[i] == '\t' || sql[i] == '\n' || sql[i] == '\r'))
+                i++;
+
+            // For FROM clause, check for comma-separated next table
+            if (isFrom && i < len && sql[i] == ',') {
+                i++;
+                continue; // parse next table in comma list
+            }
+
+            break; // done with this FROM/JOIN table reference
+        }
+    }
+
+    return tables;
 }
 
 static void odbcLog(const char* func, const char* msg, SQLINTEGER rc) {
@@ -520,6 +891,11 @@ extern "C" SQLRETURN SQL_API SQLExecDirect(SQLHSTMT hstmt, SQLCHAR* szSqlStr, SQ
     stmt->current_row = 0;
     stmt->executed = true;
     stmt->metadata_mode = "";
+    // Log all table names from the complex SQL query (JOINs, subqueries, etc.)
+    auto tables = extractTableNames(stmt->sql);
+    for (const auto& t : tables) {
+        logQueriedTable(t);
+    }
     return SQL_SUCCESS;
 }
 
@@ -593,6 +969,8 @@ SQLRETURN SQL_API SQLExecute(SQLHSTMT hstmt) {
         stmt->current_row = 0;
         stmt->executed = true;
         stmt->metadata_mode = "";
+        // Log the queried table name (if TableLogPath is set in registry)
+        logQueriedTable(table);
         return SQL_SUCCESS;
     }
 
@@ -608,6 +986,13 @@ SQLRETURN SQL_API SQLExecute(SQLHSTMT hstmt) {
     stmt->current_row = 0;
     stmt->executed = true;
     stmt->metadata_mode = "";
+    // Log all table names from the complex SQL query (JOINs, subqueries, etc.)
+    {
+        auto tables = extractTableNames(stmt->sql);
+        for (const auto& t : tables) {
+            logQueriedTable(t);
+        }
+    }
     return SQL_SUCCESS;
 }
 
